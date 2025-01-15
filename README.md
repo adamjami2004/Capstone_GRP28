@@ -5,7 +5,7 @@
 Our Group is composed of 3 members :
 
 Adam Jami 300245165 ajami070@uottawa.ca
-/ Tachfine Bihya
+Tachfine Bihya 300264705 tbihy010@uottawa.ca
 / Abdelaziz Amine 
 
 Our customer's name is Mikayla O'Neill 
