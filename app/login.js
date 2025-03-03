@@ -12,8 +12,9 @@ export default function Login() {
       Alert.alert('Error', 'Please enter both email and password.');
       return;
     }
-    router.push('/home'); // ✅ Change this to navigate to your Home screen
+    router.push('/home/'); // ✅ Change this to navigate to your Home screen
   };
+  
 
   return (
     <View style={styles.container}>
