@@ -61,6 +61,7 @@ export default function SignUpStep2() {
     }
     try {
       const user = await signUp(email, password);
+      await updateProfile(user, { displayName: `${firstName} ${lastName}` });
       await createUserProfile(user.uid, {
         firstName,
         lastName,
