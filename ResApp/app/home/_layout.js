@@ -45,16 +45,16 @@ export default function HomeLayout() {
           options={{
             title: 'Chat',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="notifications-outline" color={color} size={size} />
+              <Ionicons name="chatbubble-outline" color={color} size={size} />
             ),
           }}
         />
         <Tabs.Screen
-          name="profile"
+          name="profile/index" 
           options={{
-            title: 'Profile',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person-outline" color={color} size={size} />
+           title: 'Profile',
+           tabBarIcon: ({ color, size }) => (
+             <Ionicons name="person-outline" color={color} size={size} />
             ),
           }}
         />
@@ -63,7 +63,7 @@ export default function HomeLayout() {
           options={{
             title: 'notifications',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person-outline" color={color} size={size} />
+              <Ionicons name="notifications-outline" color={color} size={size} />
             ),
           }}
         />
