@@ -7,21 +7,57 @@ export default function Homepage() {
   const router = useRouter();
   const scrollY = useRef(new Animated.Value(0)).current;
 
-
+  // Initialize menu position to be off-screen
   const slideAnim = useRef(new Animated.Value(-250)).current;
   const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleMenu = () => {
+    // Improved animation with better easing
     Animated.timing(slideAnim, {
       toValue: menuOpen ? -250 : 0,
       duration: 300,
       useNativeDriver: true,
+      // Adding easeOut for smoother animation
     }).start();
     setMenuOpen(!menuOpen);
   };
 
   return (
     <View style={styles.container}>
+      {/* Side Menu - Positioned with translateX for better performance */}
+      <Animated.View 
+        style={[
+          styles.sideMenu, 
+          { 
+            transform: [{ translateX: slideAnim }] 
+          }
+        ]}
+      >
+        <Text style={styles.menuHeader}>Menu</Text>
+        {menuItems.map((item, index) => (
+          <TouchableOpacity 
+            key={index} 
+            style={styles.menuItem} 
+            onPress={() => {
+              console.log(item.label);
+              toggleMenu(); // Close menu after selection
+            }}
+          >
+            <Ionicons name={item.icon} size={22} color="white" />
+            <Text style={styles.menuText}>{item.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </Animated.View>
+
+      {/* Dark Overlay when Menu is Open */}
+      {menuOpen && (
+        <TouchableOpacity 
+          style={styles.overlay} 
+          activeOpacity={1}
+          onPress={toggleMenu} 
+        />
+      )}
+
       {/* Top Navigation Bar */}
       <View style={styles.topNav}>
         {/* Side Menu Button */}
@@ -37,20 +73,6 @@ export default function Homepage() {
           <Ionicons name="person" size={24} color="black" />
         </TouchableOpacity>
       </View>
-      <Animated.View style={[styles.sideMenu, { left: slideAnim }]}>
-        <Text style={styles.menuTitle}>Menu</Text>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity key={index} style={styles.menuItem} onPress={() => console.log(item.label)}>
-            <Ionicons name={item.icon} size={22} color="white" />
-            <Text style={styles.menuText}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </Animated.View>
-
-      {/* Dark Overlay when Menu is Open */}
-      {menuOpen && (
-        <TouchableOpacity style={styles.overlay} onPress={toggleMenu} />
-      )}
       
       <View style={styles.viewImage}>
         <View>
@@ -116,7 +138,11 @@ const deadlines = [
 ];
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white', paddingTop: 0 },
+  container: { 
+    flex: 1, 
+    backgroundColor: 'white', 
+    paddingTop: 0 
+  },
   topNav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -130,6 +156,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 60,
     elevation: 2,
+    zIndex: 1, // Ensure it's above content but below menu
   },
   menuButton: {
     padding: 10,
@@ -180,7 +207,10 @@ const styles = StyleSheet.create({
     color: 'grey',
     marginBottom: 35,
   },
-  scrollContainer: { marginTop: 10, paddingHorizontal: 10 },
+  scrollContainer: { 
+    marginTop: 10, 
+    paddingHorizontal: 10 
+  },
   resourceButton: {
     backgroundColor: '#009757',
     padding: 20,
@@ -191,7 +221,12 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
   },
-  resourceText: { color: 'white', fontSize: 14, marginTop: 5, textAlign: 'center' },
+  resourceText: { 
+    color: 'white', 
+    fontSize: 14, 
+    marginTop: 5, 
+    textAlign: 'center' 
+  },
   deadlineList: {
     marginTop: 10,
     paddingHorizontal: 10,
@@ -207,7 +242,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    height:80
+    height: 80
   },
   iconContainer: {
     backgroundColor: '#FFA07A',
@@ -236,9 +271,40 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginLeft: 10,
   },
-  sideMenu: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 250, backgroundColor: '#333', paddingTop: 50, paddingHorizontal: 20 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15 },
-  menuText: { color: 'white', fontSize: 18, marginLeft: 15 },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1000, // Lower than menu but higher than content
+  },
+  sideMenu: { 
+    position: 'absolute', 
+    left: 0, 
+    top: 0, 
+    bottom: 0, 
+    width: 250, 
+    backgroundColor: '#333', 
+    paddingTop: 50, 
+    paddingHorizontal: 20, 
+    zIndex: 1001 // Ensure menu is on top
+  },
+  menuItem: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingVertical: 15 
+  },
+  menuText: { 
+    color: 'white', 
+    fontSize: 18, 
+    marginLeft: 15 
+  },
+  menuHeader: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20
+  }
 });
-

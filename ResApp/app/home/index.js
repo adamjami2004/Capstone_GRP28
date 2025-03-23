@@ -1,6 +1,7 @@
 // app/home/index.js
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import {
   View,
   Text,
@@ -91,7 +92,7 @@ export default function Home() {
           {/* Like/Unlike Button */}
           <TouchableOpacity style={styles.actionButton} onPress={() => handleToggleLike(item)}>
             <Text style={styles.actionText}>
-              {heartIcon} {item.likes || 0}
+              <Ionicons name="heart" size={24} color="black" /> {item.likes || 0}
             </Text>
           </TouchableOpacity>
 
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   content: { marginTop: 5, fontSize: 14 },
   image: { width: '100%', height: 200, borderRadius: 10, marginTop: 10 },
   actions: { flexDirection: 'row', marginTop: 10, justifyContent: 'space-between' },
-  actionButton: { padding: 5 },
+  actionButton: { padding: 5, justifyContent:'center', alignItems:'center', flexDirection:'row' },
   actionText: { fontSize: 16, color: '#333' },
   newPostButton: { backgroundColor: '#333', padding: 15, borderRadius: 25, alignItems: 'center', marginTop: 20 },
   newPostText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
