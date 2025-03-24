@@ -5,7 +5,7 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDrWnNajrysqRqTP7eF5z7M8ajpAUj30e4",
+  apiKey: "AIzaSyDrWnNajrysqRqTP7eF5z7M8ajpAUj30e4",  
   authDomain: "reslife-1b867.firebaseapp.com",
   projectId: "reslife-1b867",
   storageBucket: "reslife-1b867.firebasestorage.app",
