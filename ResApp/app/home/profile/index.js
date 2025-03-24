@@ -62,22 +62,45 @@ export default function Profile() {
     );
   }
 
+  // Default bio text if not provided
+  const defaultBio = "I really like to party on the weekends but im also very studious on exam season";
+
+  // Prepare bio text, truncating to 400 characters if needed.
+  const bioText = (() => {
+    let text = (profile && profile.bio) || defaultBio;
+    if (text.length > 400) {
+      return text.slice(0, 400) + "...";
+    }
+    return text;
+  })();
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        {/* ✅ Added green outline for selected avatar */}
-        {profile?.avatar ? (
-          <Image source={{ uri: profile.avatar }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>
-              {profile?.firstName ? profile.firstName.charAt(0).toUpperCase() : "U"}
-            </Text>
-          </View>
-        )}
+        <View style={styles.avatarContainer}>
+          {profile?.avatar ? (
+            <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>
+                {profile?.firstName ? profile.firstName.charAt(0).toUpperCase() : "U"}
+              </Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.name}>
-          {profile?.firstName && profile?.lastName ? `${profile.firstName} ${profile.lastName}` : "Unknown User"}
+          {profile?.firstName && profile?.lastName
+            ? `${profile.firstName} ${profile.lastName}`
+            : "Unknown User"}
         </Text>
+        {profile?.program && <Text style={styles.programText}>{profile.program}</Text>}
+      </View>
+
+      {/* Bio Label outside of the card */}
+      <Text style={styles.bioLabel}>Bio:</Text>
+      {/* Bio Card Section */}
+      <View style={styles.bioCard}>
+        <Text style={styles.bioText}>{bioText}</Text>
       </View>
 
       <View style={styles.detailsContainer}>
@@ -109,83 +132,135 @@ export default function Profile() {
   );
 }
 
-// ✅ Styles updated for the avatar outline
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F7F8FC",
     padding: 20,
+    alignItems: "center",
   },
   header: {
     alignItems: "center",
     marginBottom: 20,
   },
+  avatarContainer: {
+    position: "relative",
+    marginBottom: 10,
+  },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3, // ✅ Added border
-    borderColor: "green", // ✅ Changed outline color to green
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    borderWidth: 3,
+    borderColor: "#4CAF50",
+    backgroundColor: "#FFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
   },
   avatarPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#ccc",
-    justifyContent: "center",
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "#CCC",
     alignItems: "center",
+    justifyContent: "center",
   },
   avatarText: {
-    fontSize: 40,
-    color: "#fff",
+    fontSize: 48,
+    color: "#FFF",
   },
   name: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
-    marginTop: 5,
+    color: "#333",
+    marginTop: 8,
+  },
+  programText: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
+  },
+  // Bio label styling (outside of card)
+  bioLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    alignSelf: "flex-start",
+    marginLeft: "5%",
     color: "#333",
   },
-  detailsContainer: {
-    backgroundColor: "#f9f9f9",
+  // Bio Card styling
+  bioCard: {
+    backgroundColor: "#FFF",
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
+    borderRadius: 12,
+    marginTop: 8,
+    width: "90%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  bioText: {
+    fontSize: 16,
+    color: "#555",
+  },
+  detailsContainer: {
+    backgroundColor: "#FFF",
+    padding: 20,
+    borderRadius: 12,
+    width: "90%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 4,
+    marginTop: 15,
   },
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 8,
+    marginVertical: 10,
   },
   detailText: {
     fontSize: 16,
-    marginLeft: 10,
+    marginLeft: 12,
     color: "#555",
   },
   editButton: {
-    backgroundColor: "#008000",
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: "#019757",
+    paddingVertical: 14,
+    paddingHorizontal: 25,
+    borderRadius: 10,
     alignItems: "center",
-    marginBottom: 10,
+    marginTop: 15,
+    width: "90%",
   },
   editButtonText: {
-    color: "#fff",
+    color: "#FFF",
     fontSize: 16,
+    fontWeight: "bold",
   },
   logoutButton: {
-    backgroundColor: "#c0392b",
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: "#F44336",
+    paddingVertical: 14,
+    paddingHorizontal: 25,
+    borderRadius: 10,
     alignItems: "center",
+    marginTop: 10,
+    width: "90%",
   },
   logoutButtonText: {
-    color: "#fff",
+    color: "#FFF",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
-
