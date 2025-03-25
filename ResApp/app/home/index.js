@@ -82,7 +82,7 @@ export default function Home() {
     return (
       <View style={styles.post}>
         <Text style={styles.user}>
-          {item.user?.displayName || item.user?.email || "Unknown"}
+          {item.user?.displayName || "Unknown"}
         </Text>
         <Text style={styles.title}>{item.title}</Text>
         {item.content ? <Text style={styles.content}>{item.content}</Text> : null}
@@ -91,13 +91,14 @@ export default function Home() {
         <View style={styles.actions}>
           {/* Like/Unlike Button */}
           <TouchableOpacity style={styles.actionButton} onPress={() => handleToggleLike(item)}>
-            <Text style={styles.actionText}>
-              <Ionicons name="heart" size={24} color="black" /> {item.likes || 0}
-            </Text>
+              <Ionicons name="heart" size={24} color="black" style={{marginRight:5 }}/> 
+              <Text>
+                {item.likes || 0}
+              </Text>            
           </TouchableOpacity>
 
           {/* Comments Button */}
-          <TouchableOpacity 
+          <TouchableOpacity                 
             style={styles.actionButton} 
             onPress={() => router.push(`/comments/${item.id}`)}
           >
@@ -118,6 +119,8 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
+      <Ionicons name="leaf" size={32} color="#009757" style={{alignSelf:'center', marginBottom:10,}} />
+      
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -135,10 +138,10 @@ export default function Home() {
 
 // Styles
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9f9f9', padding: 10 },
+  container: { flex: 1, backgroundColor: 'white', padding: 10, },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  post: { backgroundColor: '#fff', padding: 15, marginVertical: 8, borderRadius: 10, elevation: 2 },
-  user: { fontWeight: 'bold', fontSize: 16 },
+  post: { backgroundColor: '#f9f9f9', padding: 15, marginVertical: 8, borderRadius: 10, elevation: 2, borderColor:'black', borderWidth:1, },
+  user: { fontWeight: 'bold', fontSize: 25 },
   title: { fontSize: 18, fontWeight: '600', marginVertical: 4 },
   content: { marginTop: 5, fontSize: 14 },
   image: { width: '100%', height: 200, borderRadius: 10, marginTop: 10 },

@@ -52,6 +52,15 @@ export default function HomeLayout() {
           }}
         />
         <Tabs.Screen
+          name="Todo"
+          options={{
+            title: 'Task',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="checkmark-outline" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="profile/index" 
           options={{
            title: 'Profile',
@@ -60,15 +69,7 @@ export default function HomeLayout() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="notifications"
-          options={{
-            title: 'notifications',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="notifications-outline" color={color} size={size} />
-            ),
-          }}
-        />
+        
       </Tabs>
     </SafeAreaProvider>
   );

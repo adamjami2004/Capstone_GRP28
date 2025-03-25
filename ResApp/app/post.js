@@ -68,7 +68,8 @@ export default function NewPost() {
         user: {
           uid: currentUser.uid,
           email: currentUser.email,
-          displayName: currentUser.displayName || currentUser.email,
+          firstName: currentUser.firstName,
+          lastTime : currentUser.lastName
         },
       };
       // Add post to Firestore's "posts" collection

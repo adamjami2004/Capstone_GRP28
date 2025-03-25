@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Linking } from 'react-native';
 
 export default function Homepage() {
   const router = useRouter();
@@ -11,20 +12,21 @@ export default function Homepage() {
   const slideAnim = useRef(new Animated.Value(-250)).current;
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const openURL = (url) => {
+    Linking.openURL(url).catch(err => console.error("Couldn't open URL:", err));
+  };
+
   const toggleMenu = () => {
-    // Improved animation with better easing
     Animated.timing(slideAnim, {
       toValue: menuOpen ? -250 : 0,
       duration: 300,
       useNativeDriver: true,
-      // Adding easeOut for smoother animation
     }).start();
     setMenuOpen(!menuOpen);
   };
 
   return (
     <View style={styles.container}>
-      {/* Side Menu - Positioned with translateX for better performance */}
       <Animated.View 
         style={[
           styles.sideMenu, 
@@ -78,18 +80,25 @@ export default function Homepage() {
         <View>
           <Text style={styles.welcomeText}>Welcome to ResApp</Text>
           <Text style={styles.username}>Adam Jami</Text>
+          <Text style={{marginLeft: 30,
+            fontSize: 14 ,
+            fontWeight: 'bold',
+            color: 'black',
+            marginBottom: 35,}}>
+              Team Lead
+          </Text>
         </View>
         <Image source={require('../../assets/images/mascot.png')} style={{ width: 200, height: 170, position:'absolute', top:100, right:-15 }} />
       </View>
 
       {/* Horizontal Scroll for Resources */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollContainer}>
-        {resources.map((item, index) => (
-          <TouchableOpacity key={index} style={styles.resourceButton}>
-            <Ionicons name={item.icon} size={32} color="white" />
-            <Text style={styles.resourceText}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
+      {resources.map((item, index) => (
+        <TouchableOpacity key={index} style={styles.resourceButton} onPress={() => openURL(item.url)}>
+          <Ionicons name={item.icon} size={32} color="white" />
+          <Text style={styles.resourceText}>{item.label}</Text>
+        </TouchableOpacity>
+      ))}
       </ScrollView>
 
       {/* Grey Background View for Deadlines */}
@@ -115,12 +124,12 @@ export default function Homepage() {
 }
 
 const resources = [
-  { icon: 'book-outline', label: 'ShareP' },
-  { icon: 'pencil-outline', label: 'Sway' },
-  { icon: 'document-text-outline', label: 'eRez' },
-  { icon: 'people-outline', label: 'Community' },
-  { icon: 'call-outline', label: 'Phone numbers' },
-  { icon: 'settings-outline', label: 'Settings' },
+  { icon: 'book-outline', label: 'ShareP', url: 'https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2' },
+  { icon: 'pencil-outline', label: 'Sway' , url: 'https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2'},
+  { icon: 'document-text-outline', label: 'eRez' , url: 'https://uottawa.erezlife.com/'},
+  { icon: 'people-outline', label: 'Community', url: 'https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2' },
+  { icon: 'call-outline', label: 'Phone numbers', url: 'https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2' },
+  { icon: 'settings-outline', label: 'Archibus' , url: 'https://archibus.com/'},
 ];
 
 const menuItems = [
@@ -205,7 +214,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: 'grey',
-    marginBottom: 35,
+    marginBottom: 5,
   },
   scrollContainer: { 
     marginTop: 10, 
