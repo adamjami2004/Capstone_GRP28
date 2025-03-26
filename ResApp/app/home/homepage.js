@@ -127,7 +127,7 @@ const resources = [
   { icon: 'book-outline', label: 'ShareP', url: 'https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2' },
   { icon: 'pencil-outline', label: 'Sway' , url: 'https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2'},
   { icon: 'document-text-outline', label: 'eRez' , url: 'https://uottawa.erezlife.com/'},
-  { icon: 'people-outline', label: 'Community', url: 'https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2' },
+  { icon: 'people-outline', label: 'Ressources', url: 'https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2' },
   { icon: 'call-outline', label: 'Phone numbers', url: 'https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2' },
   { icon: 'settings-outline', label: 'Archibus' , url: 'https://archibus.com/'},
 ];

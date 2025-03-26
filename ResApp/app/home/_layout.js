@@ -34,20 +34,11 @@ export default function HomeLayout() {
           }}
         />
         <Tabs.Screen
-          name="index"
+          name="feed"
           options={{
             title: 'Feed',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="book-outline" color={color} size={size} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="chat"
-          options={{
-            title: 'Chat',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="chatbubble-outline" color={color} size={size} />
             ),
           }}
         />
@@ -60,6 +51,16 @@ export default function HomeLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: 'Chat',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="chatbubble-outline" color={color} size={size} />
+            ),
+          }}
+        />
+        
         <Tabs.Screen
           name="profile/index" 
           options={{
