@@ -113,7 +113,7 @@ export default function Profile() {
             <Image 
               source={getAvatarSource()} 
               style={styles.avatar}
-              defaultSource={require('../../assets/images/default-avatar.png')}
+              //defaultSource={require('../../assets/images/default-avatar.png')}
               onError={(e) => console.log("Avatar failed to load:", e.nativeEvent.error)}
             />
             <TouchableOpacity 
