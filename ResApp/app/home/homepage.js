@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, StyleSheet, ScrollView, Image, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Linking } from 'react-native';
@@ -12,6 +12,11 @@ export default function Homepage() {
   const slideAnim = useRef(new Animated.Value(-250)).current;
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Deadlines section animation
+  const [deadlinesExpanded, setDeadlinesExpanded] = useState(false);
+  const deadlinesHeight = useRef(new Animated.Value(0)).current;
+  const screenHeight = Dimensions.get('window').height;
+
   const openURL = (url) => {
     Linking.openURL(url).catch(err => console.error("Couldn't open URL:", err));
   };
@@ -23,6 +28,15 @@ export default function Homepage() {
       useNativeDriver: true,
     }).start();
     setMenuOpen(!menuOpen);
+  };
+
+  const toggleDeadlinesSection = () => {
+    Animated.timing(deadlinesHeight, {
+      toValue: deadlinesExpanded ? 0 : screenHeight * 0.8,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    setDeadlinesExpanded(!deadlinesExpanded);
   };
 
   return (
@@ -80,31 +94,75 @@ export default function Homepage() {
         <View>
           <Text style={styles.welcomeText}>Welcome to ResApp</Text>
           <Text style={styles.username}>Adam Jami</Text>
-          <Text style={{marginLeft: 30,
-            fontSize: 14 ,
+          <Text style={{
+            marginLeft: 30,
+            fontSize: 14,
             fontWeight: 'bold',
             color: 'black',
-            marginBottom: 35,}}>
-              Team Lead
+            marginBottom: 35,
+          }}>
+            Team Lead
           </Text>
         </View>
-        <Image source={require('../../assets/images/mascot.png')} style={{ width: 200, height: 170, position:'absolute', top:100, right:-15 }} />
+        <Image 
+          source={require('../../assets/images/mascot.png')} 
+          style={{ 
+            width: 200, 
+            height: 170, 
+            position: 'absolute', 
+            top: 100, 
+            right: -15 
+          }} 
+        />
       </View>
 
       {/* Horizontal Scroll for Resources */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollContainer}>
-      {resources.map((item, index) => (
-        <TouchableOpacity key={index} style={styles.resourceButton} onPress={() => openURL(item.url)}>
-          <Ionicons name={item.icon} size={32} color="white" />
-          <Text style={styles.resourceText}>{item.label}</Text>
-        </TouchableOpacity>
-      ))}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        style={styles.scrollContainer}
+      >
+        {resources.map((item, index) => (
+          <TouchableOpacity 
+            key={index} 
+            style={styles.resourceButton} 
+            onPress={() => openURL(item.url)}
+          >
+            <Ionicons name={item.icon} size={32} color="white" />
+            <Text style={styles.resourceText}>{item.label}</Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
 
-      {/* Grey Background View for Deadlines */}
-      <View style={styles.greyView}>
-        <Text style={styles.DeadlineTitle}>Next Upcoming Deadlines</Text>
-        <ScrollView style={styles.deadlineList}>
+      {/* Grey Background View for Deadlines with Expand Button */}
+      <Animated.View 
+        style={[
+          styles.greyView, 
+          { 
+            height: deadlinesHeight.interpolate({
+              inputRange: [0, screenHeight * 0.8],
+              outputRange: ['40%', '100%']
+            }) 
+          }
+        ]}
+      >
+        <View style={styles.deadlineHeader}>
+          <Text style={styles.DeadlineTitle}>Next Upcoming Deadlines</Text>
+          <TouchableOpacity 
+            onPress={toggleDeadlinesSection} 
+            style={styles.expandButton}
+          >
+            <Ionicons 
+              name={deadlinesExpanded ? "chevron-down" : "chevron-up"} 
+              size={24} 
+              color="black" 
+            />
+          </TouchableOpacity>
+        </View>
+        <ScrollView 
+          style={styles.deadlineList}
+          scrollEnabled={deadlinesExpanded}
+        >
           {deadlines.map((deadline, index) => (
             <TouchableOpacity key={index} style={styles.deadlineCard}>
               <View style={styles.iconContainer}>
@@ -118,7 +176,7 @@ export default function Homepage() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -182,12 +240,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
     paddingVertical: 10,
-    height:'40%'
+    height: '40%'
   },
   viewImage: {
     flexDirection: 'row',
     marginBottom: 90,
-    alignItems:'center'
+    alignItems: 'center'
   },
   greenback: {
     height: 150,
@@ -315,5 +373,15 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 20
+  },
+  deadlineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingTop: 10,
+  },
+  expandButton: {
+    padding: 10,
   }
 });

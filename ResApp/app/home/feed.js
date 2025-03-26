@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   postContainer: {
-    marginBottom: 10,
-    borderBottomWidth: 1,
+    
+    borderBottomWidth: 0,
     borderBottomColor: '#eee',
   },
   postHeader: {
