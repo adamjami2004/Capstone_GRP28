@@ -33,8 +33,8 @@ export default function Home() {
 
   const imageUris = [
     'https://th.bing.com/th/id/OIP.uS7rqOTXJXXLceqOJxglCwHaEK?w=264&h=180&c=7&r=0&o=5&dpr=1.3&pid=1.7',
-    'https://th.bing.com/th/id/OIP.ezF_H8vCWKs6eOyiQ8vBwwHaEJ?w=322&h=181&c=7&r=0&o=5&dpr=1.3&pid=1.7',
-    'https://th.bing.com/th/id/OIP.HT0-MZ-pUjAEyS0eJEWCRQHaEK?w=274&h=180&c=7&r=0&o=5&dpr=1.3&pid=1.7'
+    'https://th.bing.com/th/id/R.a88e45efe0118e80679075adff6698f2?rik=2nlt%2fQmvIGmirA&pid=ImgRaw&r=0',
+    'https://th.bing.com/th/id/OIP.foCS9oiIM_oEgty257ktFgHaFj?rs=1&pid=ImgDetMain'
   ];
   
   const getRandomImageUri = () => {
