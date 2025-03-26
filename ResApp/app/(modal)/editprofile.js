@@ -11,16 +11,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ActivityIndicator,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { auth, db } from "../config/firebase";
 import { getDoc, doc, updateDoc } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { defaultAvatarConfig, generateAvatarUrl } from "../config/avatarConfig";
 
 export default function EditProfile() {
   const router = useRouter();
 
-  // State variables to store user profile details
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,10 +31,11 @@ export default function EditProfile() {
   const [residence, setResidence] = useState("");
   const [roomNo, setRoomNo] = useState("");
   const [avatar, setAvatar] = useState("");
+  const [avatarConfig, setAvatarConfig] = useState(null);
   const [bio, setBio] = useState("");
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Pulls the user's profile data from Firestore whenever the component mounts
   useEffect(() => {
     async function fetchProfile() {
       try {
@@ -39,7 +43,6 @@ export default function EditProfile() {
           console.log("No user is currently logged in.");
           return;
         }
-
         const uid = auth.currentUser.uid;
         const userRef = doc(db, "users", uid);
         const userSnap = await getDoc(userRef);
@@ -53,6 +56,7 @@ export default function EditProfile() {
           setResidence(data.residence || "");
           setRoomNo(data.roomNumber || "");
           setAvatar(data.avatar || "");
+          setAvatarConfig(data.avatarConfig || null);
           setBio(data.bio || "");
         } else {
           console.log("Profile document was not found in Firestore.");
@@ -65,18 +69,15 @@ export default function EditProfile() {
         setLoading(false);
       }
     }
-
     fetchProfile();
   }, []);
 
-  // Writes the updated profile info (excluding avatar) to Firestore
   const handleSaveChanges = async () => {
     try {
+      setSaving(true);
       if (!auth.currentUser) return;
-
       const uid = auth.currentUser.uid;
       const userRef = doc(db, "users", uid);
-
       await updateDoc(userRef, {
         firstName,
         lastName,
@@ -84,189 +85,368 @@ export default function EditProfile() {
         phoneNumber,
         bio,
       });
-
       Alert.alert("Success", "Profile updated successfully.");
       router.push("/home/profile");
     } catch (error) {
       Alert.alert("Error", error.toString());
+    } finally {
+      setSaving(false);
     }
   };
 
-  // If the user wants to discard changes, go back to the profile screen
   const handleCancel = () => {
     router.push("/home/profile");
   };
 
-  // Displays a simple loading screen if the data is still being retrieved
+  // Use the saved avatar configuration or generate from URL
+  const getAvatarSource = () => {
+    // If user has a saved avatar URL, use it directly
+    if (avatar) {
+      return { uri: avatar };
+    }
+    
+    // If user has a saved avatar configuration, generate URL
+    if (avatarConfig) {
+      const avatarUrl = generateAvatarUrl(avatarConfig);
+      return { uri: avatarUrl };
+    }
+    
+    // Otherwise use default avatar
+    const defaultConfig = {
+      ...defaultAvatarConfig,
+      seed: firstName || "User"
+    };
+    return { uri: generateAvatarUrl(defaultConfig) };
+  };
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#019757" />
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Edit Profile</Text>
-
-        {/* Display the user's current avatar if it exists */}
-        {avatar ? (
-          <Image source={{ uri: avatar }} style={styles.avatar} />
-        ) : (
-          <Text>No avatar set</Text>
-        )}
-
-        {/* Tapping this button opens a separate modal to change the avatar */}
-        <TouchableOpacity
-          style={styles.editAvatarButton}
-          onPress={() => router.push("/(modal)/editavatar")}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#e8f5e9" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.editAvatarButtonText}>Change Avatar</Text>
-        </TouchableOpacity>
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={handleCancel}
+            >
+              <Ionicons name="chevron-back" size={24} color="#019757" />
+            </TouchableOpacity>
+            <Text style={styles.title}>Edit Profile</Text>
+            <View style={styles.backButton} />
+          </View>
 
-        {/* User can update first name here */}
-        <View style={styles.inputContainer}>
-          <Ionicons name="person-outline" size={20} color="#555" />
-          <TextInput
-            style={styles.input}
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholder="First Name"
-          />
-        </View>
+          <View style={styles.avatarSection}>
+            <Image 
+              source={getAvatarSource()} 
+              style={styles.avatar}
+              onError={(e) => console.log("Avatar failed to load:", e.nativeEvent.error)}
+            />
+            <TouchableOpacity
+              style={styles.changeAvatarButton}
+              onPress={() => router.push("/(modal)/editavatar")}
+            >
+              <Ionicons name="person-circle-outline" size={20} color="#fff" style={styles.buttonIcon} />
+              <Text style={styles.changeAvatarText}>Change Avatar</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* User can update last name here */}
-        <View style={styles.inputContainer}>
-          <Ionicons name="person-outline" size={20} color="#555" />
-          <TextInput
-            style={styles.input}
-            value={lastName}
-            onChangeText={setLastName}
-            placeholder="Last Name"
-          />
-        </View>
+          {/* Personal Information Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="person-circle-outline" size={22} color="#019757" />
+              <Text style={styles.sectionTitle}>Personal Information</Text>
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>First Name</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="person-outline" size={20} color="#019757" />
+                <TextInput
+                  style={styles.input}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="Enter your first name"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+              
+              <Text style={styles.inputLabel}>Last Name</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="person-outline" size={20} color="#019757" />
+                <TextInput
+                  style={styles.input}
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Enter your last name"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+              
+              <Text style={styles.inputLabel}>Email</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="mail-outline" size={20} color="#019757" />
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Enter your email address"
+                  placeholderTextColor="#aaa"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+              
+              <Text style={styles.inputLabel}>Phone Number</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="call-outline" size={20} color="#019757" />
+                <TextInput
+                  style={styles.input}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  placeholder="Enter your phone number"
+                  placeholderTextColor="#aaa"
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+          </View>
+          
+          {/* Residence Information Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="home-outline" size={22} color="#019757" />
+              <Text style={styles.sectionTitle}>Residence Information</Text>
+              <View style={styles.readOnlyBadge}>
+                <Text style={styles.readOnlyText}>Read Only</Text>
+              </View>
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Residence</Text>
+              <View style={[styles.inputContainer, styles.disabledContainer]}>
+                <Ionicons name="home-outline" size={20} color="#888" />
+                <TextInput
+                  style={[styles.input, styles.disabledInput]}
+                  value={residence}
+                  editable={false}
+                  placeholder="Residence"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+              
+              <Text style={styles.inputLabel}>Room Number</Text>
+              <View style={[styles.inputContainer, styles.disabledContainer]}>
+                <Ionicons name="bed-outline" size={20} color="#888" />
+                <TextInput
+                  style={[styles.input, styles.disabledInput]}
+                  value={roomNo}
+                  editable={false}
+                  placeholder="Room Number"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+            </View>
+          </View>
+          
+          {/* Bio Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="information-circle-outline" size={22} color="#019757" />
+              <Text style={styles.sectionTitle}>About Me</Text>
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Bio <Text style={styles.charCount}>{bio.length}/250</Text></Text>
+              <View style={styles.bioInputContainer}>
+                <TextInput
+                  style={styles.bioInput}
+                  value={bio}
+                  onChangeText={setBio}
+                  placeholder="Tell us about yourself..."
+                  placeholderTextColor="#aaa"
+                  multiline={true}
+                  maxLength={250}
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+          </View>
 
-        {/* Email can be edited if needed */}
-        <View style={styles.inputContainer}>
-          <Ionicons name="mail-outline" size={20} color="#555" />
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
-            keyboardType="email-address"
-          />
-        </View>
-
-        {/* Phone number can be changed here */}
-        <View style={styles.inputContainer}>
-          <Ionicons name="call-outline" size={20} color="#555" />
-          <TextInput
-            style={styles.input}
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            placeholder="Phone Number"
-            keyboardType="phone-pad"
-          />
-        </View>
-
-        {/* Residence and room number are locked down, so they're disabled */}
-        <View style={styles.inputContainer}>
-          <Ionicons name="home-outline" size={20} color="#555" />
-          <TextInput
-            style={[styles.input, styles.disabledInput]}
-            value={residence}
-            editable={false}
-            placeholder="Residence"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Ionicons name="bed-outline" size={20} color="#555" />
-          <TextInput
-            style={[styles.input, styles.disabledInput]}
-            value={roomNo}
-            editable={false}
-            placeholder="Room Number"
-          />
-        </View>
-
-        {/* A quick text field for the user's personal bio */}
-        <View style={styles.bioInputContainer}>
-          <Text style={styles.bioLabel}>Bio:</Text>
-          <TextInput
-            style={[styles.input, styles.bioInput]}
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Enter your bio (max 250 characters)"
-            multiline={true}
-            maxLength={250}
-          />
-        </View>
-
-        {/* Confirm or discard changes */}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
-          <Text style={styles.saveButtonText}>Save Changes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {/* Action Buttons */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={styles.saveButton} 
+              onPress={handleSaveChanges}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="save-outline" size={20} color="#fff" style={styles.buttonIcon} />
+                  <Text style={styles.buttonText}>Save Changes</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={handleCancel}
+              disabled={saving}
+            >
+              <Ionicons name="close-outline" size={20} color="#fff" style={styles.buttonIcon} />
+              <Text style={styles.buttonText}>Discard Changes</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
-// Updated styles with a more human-coded vibe
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#e8f5e9",
+  },
   container: {
-    padding: 20,
-    backgroundColor: "#fff",
+    padding: 16,
+    backgroundColor: "#e8f5e9",
+    paddingBottom: 30,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#e8f5e9",
+  },
+  
+  /* Header */
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    paddingVertical: 8,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
+    color: "#019757",
+  },
+  
+  /* Avatar Section */
+  avatarSection: {
+    alignItems: "center",
+    marginBottom: 24,
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    alignSelf: "center",
-    marginBottom: 10,
+    borderWidth: 4,
+    borderColor: "#fff",
+    marginBottom: 16,
+    backgroundColor: "#f0f0f0",
   },
-  editAvatarButton: {
+  changeAvatarButton: {
     backgroundColor: "#019757",
-    padding: 10,
-    borderRadius: 5,
-    alignSelf: "center",
-    marginBottom: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#019757",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  editAvatarButtonText: {
+  changeAvatarText: {
     color: "#fff",
     fontSize: 16,
+    fontWeight: "600",
+  },
+  
+  /* Cards */
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0f2e9",
+    paddingBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#019757",
+    marginLeft: 8,
+    flex: 1,
+  },
+  readOnlyBadge: {
+    backgroundColor: "#f0f0f0",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  readOnlyText: {
+    fontSize: 10,
+    color: "#666",
+    fontWeight: "500",
+  },
+  
+  /* Input Fields */
+  inputGroup: {
+    width: "100%",
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#555",
+    marginBottom: 6,
+    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f0f0",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  disabledInput: {
-    color: "#999",
+    backgroundColor: "#f7f7f7",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
   },
   input: {
     flex: 1,
@@ -274,44 +454,69 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     color: "#333",
   },
-  bioInputContainer: {
-    marginBottom: 10,
+  disabledContainer: {
+    backgroundColor: "#f0f0f0",
+    borderColor: "#e0e0e0",
   },
-  bioLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-    color: "#333",
+  disabledInput: {
+    color: "#888",
+  },
+  bioInputContainer: {
+    backgroundColor: "#f7f7f7",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    marginBottom: 16,
   },
   bioInput: {
-    backgroundColor: "#f0f0f0",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
     fontSize: 16,
     color: "#333",
-    textAlignVertical: "top",
-    height: 100,
+    padding: 16,
+    minHeight: 120,
+  },
+  charCount: {
+    fontSize: 12,
+    color: "#888",
+    fontWeight: "normal",
+  },
+  
+  /* Buttons */
+  buttonContainer: {
+    marginTop: 8,
   },
   saveButton: {
     backgroundColor: "#019757",
-    padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: "center",
-    marginBottom: 10,
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    shadowColor: "#019757",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
   cancelButton: {
-    backgroundColor: "#c0392b",
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: "#F44336",
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    shadowColor: "#F44336",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
-  cancelButtonText: {
+  buttonText: {
     color: "#fff",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
 });
