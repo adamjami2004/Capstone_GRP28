@@ -32,9 +32,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   const imageUris = [
-    'https://th.bing.com/th/id/OIP.uS7rqOTXJXXLceqOJxglCwHaEK?w=264&h=180&c=7&r=0&o=5&dpr=1.3&pid=1.7',
-    'https://th.bing.com/th/id/R.a88e45efe0118e80679075adff6698f2?rik=2nlt%2fQmvIGmirA&pid=ImgRaw&r=0',
-    'https://th.bing.com/th/id/OIP.foCS9oiIM_oEgty257ktFgHaFj?rs=1&pid=ImgDetMain'
+    'https://images.unsplash.com/photo-1564981797816-1043664bf78d?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8c3R1ZGVudCUyMGV2ZW50fGVufDB8fDB8fHww',
+    'https://images.unsplash.com/photo-1597893311798-9911ea4af043?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
   ];
   
   const getRandomImageUri = () => {
@@ -89,13 +89,19 @@ export default function Home() {
       <View style={styles.postContainer}>
         {/* Post Header */}
         <View style={styles.postHeader}>
-          <Image 
-            source={{ uri: item.user?.photoURL || 'https://th.bing.com/th/id/OIP.abbHwUGf7cWF1KrClYxa5AHaHa?w=182&h=182&c=7&r=0&o=5&dpr=1.3&pid=1.7' }} 
-            style={styles.profileImage} 
-          />
-          <Text style={styles.username}>
-            {item.user?.displayName || "Unknown"}
-          </Text>
+          
+          <View style={styles.post_id}>
+            <Image 
+              source={{ uri: item.user?.photoURL || 'https://th.bing.com/th/id/OIP.abbHwUGf7cWF1KrClYxa5AHaHa?w=182&h=182&c=7&r=0&o=5&dpr=1.3&pid=1.7' }} 
+              style={styles.profileImage} 
+            />
+            <Text style={styles.username}>
+              {item.user?.displayName || "Unknown"}
+            </Text>
+          </View>
+          <Ionicons name="ellipsis-horizontal-outline" size={32} color="black"  />
+
+
         </View>
 
         {/* Post Image */}
@@ -188,20 +194,25 @@ const styles = StyleSheet.create({
     flexDirection:'row'
     ,alignItems:'center'
   },
+  post_id:{
+    flexDirection:'row'
+    ,alignItems:'center'
+  },
   loadingContainer: { 
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center' 
   },
   postContainer: {
-    marginBottom: 20,
+    marginBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee'
+    borderBottomColor: '#eee',
   },
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10
+    padding: 10,
+    justifyContent:'space-between'
   },
   profileImage: {
     width: 40,
@@ -223,7 +234,8 @@ const styles = StyleSheet.create({
   },
   postDetails: {
     paddingHorizontal: 10,
-    paddingBottom: 10
+    paddingBottom: 10,
+    marginBottom:20,
   },
   likesCount: {
     fontWeight: 'bold',
