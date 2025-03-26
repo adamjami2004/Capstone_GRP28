@@ -1,4 +1,3 @@
-// app/comments/[postId].js
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
@@ -8,8 +7,11 @@ import {
   StyleSheet, 
   FlatList, 
   ActivityIndicator, 
-  Alert 
+  Alert,
+  Image,
+  Dimensions
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { 
   collection, 
@@ -19,15 +21,16 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
+const { width } = Dimensions.get('window');
+
 export default function PostComments() {
-  const { postId } = useLocalSearchParams();   // postId from the dynamic route
+  const { postId } = useLocalSearchParams();   
   const router = useRouter();
   
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // 1) Listen to real-time comments for this post
   useEffect(() => {
     if (!postId) return;
 
@@ -51,7 +54,6 @@ export default function PostComments() {
     return () => unsubscribe();
   }, [postId]);
 
-  // 2) Add a new comment to Firestore
   const handleAddComment = async () => {
     if (!newComment.trim()) {
       Alert.alert('Error', 'Comment cannot be empty.');
@@ -63,65 +65,88 @@ export default function PostComments() {
         Alert.alert('Error', 'User not authenticated.');
         return;
       }
-      // Create a new comment doc in the subcollection
       await addDoc(collection(db, 'posts', postId, 'comments'), {
         text: newComment,
         createdAt: serverTimestamp(),
         user: {
           uid: currentUser.uid,
           displayName: currentUser.displayName || currentUser.email,
+          photoURL: currentUser.photoURL || 'https://via.placeholder.com/40',
         },
       });
-      setNewComment(''); // Clear input
+      setNewComment('');
     } catch (error) {
       console.error('Error adding comment:', error);
       Alert.alert('Error', error.toString());
     }
   };
 
-  // 3) Render each comment in a FlatList
   const renderComment = ({ item }) => (
-    <View style={styles.comment}>
-      <Text style={styles.commentUser}>
-      {item.user?.displayName || item.user?.email || "Unknown"}
-      </Text>
-      <Text style={styles.commentText}>{item.text}</Text>
+    <View style={styles.commentContainer}>
+      <Image 
+        source={{ uri: item.user?.photoURL || 'https://via.placeholder.com/40' }} 
+        style={styles.profileImage} 
+      />
+      <View style={styles.commentContent}>
+        <Text style={styles.commentUser}>
+          {item.user?.displayName || "Unknown"}
+        </Text>
+        <Text style={styles.commentText}>{item.text}</Text>
+      </View>
     </View>
   );
 
-  // 4) UI
   return (
     <View style={styles.container}>
-      {/* Header row with a back button */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Quit</Text>
+      {/* Instagram-style Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
-        <Text style={styles.header}>Comments</Text>
+        <Text style={styles.headerTitle}>Comments</Text>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#333" style={{ marginVertical: 20 }} />
+        <ActivityIndicator size="large" color="#333" style={styles.loader} />
       ) : (
         <FlatList
           data={comments}
           keyExtractor={(item) => item.id}
           renderItem={renderComment}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={styles.commentsList}
+          ListEmptyComponent={
+            <Text style={styles.emptyComments}>No comments yet</Text>
+          }
         />
       )}
 
-      {/* Input for adding new comments */}
+      {/* Comment Input */}
       <View style={styles.inputContainer}>
+        <Image 
+          source={{ 
+            uri: auth.currentUser?.photoURL || 'https://via.placeholder.com/40' 
+          }} 
+          style={styles.currentUserImage} 
+        />
         <TextInput
           style={styles.input}
           placeholder="Add a comment..."
-          placeholderTextColor="#666"
+          placeholderTextColor="#888"
           value={newComment}
           onChangeText={setNewComment}
+          multiline
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleAddComment}>
-          <Text style={styles.sendButtonText}>Send</Text>
+        <TouchableOpacity 
+          style={styles.sendButton} 
+          onPress={handleAddComment}
+          disabled={!newComment.trim()}
+        >
+          <Text style={[
+            styles.sendButtonText, 
+            { color: newComment.trim() ? '#0095f6' : '#b2dffc' }
+          ]}>
+            Send
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -130,69 +155,84 @@ export default function PostComments() {
 
 // Styles
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20 },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  backButton: {
-    backgroundColor: '#ccc',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    marginRight: 15,
-  },
-  backButtonText: {
-    color: '#333',
-    fontSize: 16,
+  container: { 
+    flex: 1, 
+    backgroundColor: 'white' 
   },
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd'
   },
-  comment: {
-    marginVertical: 8,
-    padding: 10,
-    backgroundColor: '#f1f1f1',
-    borderRadius: 8,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 15
+  },
+  loader: { 
+    marginVertical: 20 
+  },
+  commentsList: {
+    paddingHorizontal: 15,
+    paddingTop: 15
+  },
+  emptyComments: {
+    textAlign: 'center',
+    color: '#888',
+    marginTop: 20
+  },
+  commentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10
+  },
+  commentContent: {
+    flex: 1
   },
   commentUser: {
     fontWeight: 'bold',
-    color: '#333',
+    fontSize: 14
   },
   commentText: {
-    marginTop: 4,
-    color: '#555',
+    fontSize: 14,
+    color: '#333'
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderColor: '#ccc',
-    paddingTop: 10,
-    marginTop: 10,
+    borderTopColor: '#ddd',
+    paddingHorizontal: 15,
+    paddingVertical: 10
+  },
+  currentUserImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 10,
+    minHeight: 40,
+    maxHeight: 100,
+    paddingHorizontal: 10,
     fontSize: 16,
-    color: '#000',
-    backgroundColor: '#f9f9f9',
+    color: '#000'
   },
   sendButton: {
-    marginLeft: 10,
-    backgroundColor: '#333',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
+    marginLeft: 10
   },
   sendButtonText: {
-    color: '#fff',
     fontSize: 16,
-  },
+    fontWeight: '600'
+  }
 });

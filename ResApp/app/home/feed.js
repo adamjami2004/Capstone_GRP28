@@ -1,4 +1,3 @@
-// app/home/index.js
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +9,7 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { 
   collection, 
@@ -24,10 +24,22 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
+const { width } = Dimensions.get('window');
+
 export default function Home() {
   const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const imageUris = [
+    'https://th.bing.com/th/id/OIP.uS7rqOTXJXXLceqOJxglCwHaEK?w=264&h=180&c=7&r=0&o=5&dpr=1.3&pid=1.7',
+    'https://th.bing.com/th/id/OIP.ezF_H8vCWKs6eOyiQ8vBwwHaEJ?w=322&h=181&c=7&r=0&o=5&dpr=1.3&pid=1.7',
+    'https://th.bing.com/th/id/OIP.HT0-MZ-pUjAEyS0eJEWCRQHaEK?w=274&h=180&c=7&r=0&o=5&dpr=1.3&pid=1.7'
+  ];
+  
+  const getRandomImageUri = () => {
+    return imageUris[Math.floor(Math.random() * imageUris.length)];
+  };
 
   useEffect(() => {
     const postsQuery = query(
@@ -45,25 +57,20 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  // Toggle Like: if user has liked, we unlike; otherwise, we like
   const handleToggleLike = async (post) => {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
       const postRef = doc(db, "posts", post.id);
-
-      // Check if current user has already liked this post
       const isLiked = post.likedBy?.includes(currentUser.uid);
 
       if (isLiked) {
-        // UNLIKE: remove user from likedBy array, decrement likes
         await updateDoc(postRef, {
           likedBy: arrayRemove(currentUser.uid),
           likes: increment(-1),
         });
       } else {
-        // LIKE: add user to likedBy array, increment likes
         await updateDoc(postRef, {
           likedBy: arrayUnion(currentUser.uid),
           likes: increment(1),
@@ -77,33 +84,50 @@ export default function Home() {
   const renderPost = ({ item }) => {
     const currentUser = auth.currentUser;
     const isLiked = currentUser && item.likedBy?.includes(currentUser.uid);
-    const heartIcon = isLiked ? '❤️' : '🤍';  // Red heart if liked, white/empty if not
 
     return (
-      <View style={styles.post}>
-        <Text style={styles.user}>
-          {item.user?.displayName || "Unknown"}
-        </Text>
-        <Text style={styles.title}>{item.title}</Text>
-        {item.content ? <Text style={styles.content}>{item.content}</Text> : null}
-        {item.image ? <Image source={{ uri: item.image }} style={styles.image} /> : null}
-        
-        <View style={styles.actions}>
-          {/* Like/Unlike Button */}
-          <TouchableOpacity style={styles.actionButton} onPress={() => handleToggleLike(item)}>
-              <Ionicons name="heart" size={24} color="black" style={{marginRight:5 }}/> 
-              <Text>
-                {item.likes || 0}
-              </Text>            
-          </TouchableOpacity>
+      <View style={styles.postContainer}>
+        {/* Post Header */}
+        <View style={styles.postHeader}>
+          <Image 
+            source={{ uri: item.user?.photoURL || 'https://th.bing.com/th/id/OIP.abbHwUGf7cWF1KrClYxa5AHaHa?w=182&h=182&c=7&r=0&o=5&dpr=1.3&pid=1.7' }} 
+            style={styles.profileImage} 
+          />
+          <Text style={styles.username}>
+            {item.user?.displayName || "Unknown"}
+          </Text>
+        </View>
 
-          {/* Comments Button */}
-          <TouchableOpacity                 
-            style={styles.actionButton} 
-            onPress={() => router.push(`/comments/${item.id}`)}
-          >
-            <Text style={styles.actionText}>💬 Comments</Text>
+        {/* Post Image */}
+        {item.image && (
+          <Image 
+            source={{ uri: getRandomImageUri() }} 
+            style={styles.postImage} 
+            resizeMode="cover"
+          />
+        )}
+
+        {/* Post Actions */}
+        <View style={styles.postActions}>
+          <TouchableOpacity onPress={() => handleToggleLike(item)}>
+            <Ionicons 
+              name={isLiked ? "heart" : "heart-outline"} 
+              size={24} 
+              color={isLiked ? "red" : "black"} 
+            />
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push(`/comments/${item.id}`)}>
+            <Ionicons name="chatbubble-outline" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Post Details */}
+        <View style={styles.postDetails}>
+          <Text style={styles.likesCount}>{item.likes || 0} likes</Text>
+          <Text style={styles.postContent}>
+            <Text style={styles.username}>{item.user?.displayName || "Unknown"} </Text>
+            {item.content}
+          </Text>
         </View>
       </View>
     );
@@ -119,35 +143,93 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      <Ionicons name="leaf" size={32} color="#009757" style={{alignSelf:'center', marginBottom:10,}} />
-      
+      {/* Instagram-like Header */}
+      <View style={styles.header}>
+        <View style={styles.logo_res}>
+          <Ionicons name="leaf" size={32} color="#009757" />
+          <Text style={styles.headerTitle}>Res App Feed</Text>
+        </View>
+        <TouchableOpacity onPress={() => router.push('/post')}>
+          <Ionicons name="add-circle-outline" size={28} color="black" />
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={renderPost}
+        showsVerticalScrollIndicator={false}
       />
-      <TouchableOpacity
-        style={styles.newPostButton}
-        onPress={() => router.push('/post')}
-      >
-        <Text style={styles.newPostText}>+ New Post</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
 // Styles
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white', padding: 10, },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  post: { backgroundColor: '#f9f9f9', padding: 15, marginVertical: 8, borderRadius: 10, elevation: 2, borderColor:'black', borderWidth:1, },
-  user: { fontWeight: 'bold', fontSize: 25 },
-  title: { fontSize: 18, fontWeight: '600', marginVertical: 4 },
-  content: { marginTop: 5, fontSize: 14 },
-  image: { width: '100%', height: 200, borderRadius: 10, marginTop: 10 },
-  actions: { flexDirection: 'row', marginTop: 10, justifyContent: 'space-between' },
-  actionButton: { padding: 5, justifyContent:'center', alignItems:'center', flexDirection:'row' },
-  actionText: { fontSize: 16, color: '#333' },
-  newPostButton: { backgroundColor: '#333', padding: 15, borderRadius: 25, alignItems: 'center', marginTop: 20 },
-  newPostText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  container: { 
+    flex: 1, 
+    backgroundColor: 'white' 
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd'
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft:10
+  },
+  logo_res:{
+    flexDirection:'row'
+    ,alignItems:'center'
+  },
+  loadingContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  postContainer: {
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee'
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10
+  },
+  username: {
+    fontWeight: 'bold'
+  },
+  postImage: {
+    width: width,
+    height: width,
+  },
+  postActions: {
+    flexDirection: 'row',
+    padding: 10,
+    gap: 15
+  },
+  postDetails: {
+    paddingHorizontal: 10,
+    paddingBottom: 10
+  },
+  likesCount: {
+    fontWeight: 'bold',
+    marginBottom: 5
+  },
+  postContent: {
+    fontSize: 14
+  }
 });
