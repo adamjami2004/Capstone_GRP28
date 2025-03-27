@@ -1,124 +1,161 @@
-import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Image, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Text, 
-  ScrollView, 
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+  View,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  ScrollView,
   Modal,
   FlatList,
-  ActivityIndicator
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { 
-  defaultAvatarConfig, 
-  avatarOptions, 
-  featureLabels, 
-  generateAvatarUrl, 
+  ActivityIndicator,
+} from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import {
+  defaultAvatarConfig,
+  avatarOptions,
+  featureLabels,
+  generateAvatarUrl,
   extractConfigFromUrl,
-  generateRandomAvatar
-} from "../../app/config/avatarConfig";
+  generateRandomAvatar,
+} from "../../app/config/avatarConfig"
+
+// Dummy getColorName function (replace with actual implementation if available)
+const getColorName = (hexColor) => {
+  // This is a placeholder.  In a real application, you would likely
+  // have a mapping of hex codes to color names.
+  const colorMap = {
+    ff0000: "Red",
+    "00ff00": "Green",
+    "0000ff": "Blue",
+    // Add more colors as needed
+  }
+
+  return colorMap[hexColor] || null
+}
 
 export default function AvatarSelector({ selectedAvatar, onSelect }) {
   // Parse the existing avatar URL or use default config
-  const [avatarConfig, setAvatarConfig] = useState(defaultAvatarConfig);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [currentFeature, setCurrentFeature] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  
+  const [avatarConfig, setAvatarConfig] = useState(defaultAvatarConfig)
+  const [modalVisible, setModalVisible] = useState(false)
+  const [currentFeature, setCurrentFeature] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [imageError, setImageError] = useState(false)
+
   // Update avatarConfig when selectedAvatar changes
   useEffect(() => {
     if (selectedAvatar) {
       try {
-        const parsedConfig = extractConfigFromUrl(selectedAvatar);
-        setAvatarConfig(parsedConfig);
-        setImageError(false);
+        const parsedConfig = extractConfigFromUrl(selectedAvatar)
+        setAvatarConfig(parsedConfig)
+        setImageError(false)
       } catch (error) {
-        console.error("Error processing avatar URL:", error);
-        setAvatarConfig(defaultAvatarConfig);
+        console.error("Error processing avatar URL:", error)
+        setAvatarConfig(defaultAvatarConfig)
       }
     }
-  }, [selectedAvatar]);
+  }, [selectedAvatar])
 
   // Generate the current avatar URL
-  const avatarUrl = generateAvatarUrl(avatarConfig);
-  
+  const avatarUrl = generateAvatarUrl(avatarConfig)
+
   // Open modal for specific feature customization
   const openFeatureModal = (feature) => {
-    setCurrentFeature(feature);
-    setModalVisible(true);
-  };
-  
+    setCurrentFeature(feature)
+    setModalVisible(true)
+  }
+
   // Update feature and close modal
   const selectFeatureOption = (option) => {
-    setLoading(true);
+    setLoading(true)
     if (currentFeature) {
-      const updatedConfig = { ...avatarConfig, [currentFeature]: option };
-      setAvatarConfig(updatedConfig);
-      
+      const updatedConfig = { ...avatarConfig, [currentFeature]: option }
+      setAvatarConfig(updatedConfig)
+
       // Call the onSelect callback with the new URL
       if (onSelect) {
-        const newUrl = generateAvatarUrl(updatedConfig);
-        onSelect(newUrl);
+        const newUrl = generateAvatarUrl(updatedConfig)
+        onSelect(newUrl)
       }
     }
-    setLoading(false);
-    setModalVisible(false);
-  };
+    setLoading(false)
+    setModalVisible(false)
+  }
 
   // Generate a random avatar
   const handleRandomize = () => {
-    setLoading(true);
-    const randomConfig = generateRandomAvatar();
-    setAvatarConfig(randomConfig);
-    
+    setLoading(true)
+    const randomConfig = generateRandomAvatar()
+    setAvatarConfig(randomConfig)
+
     if (onSelect) {
-      const newUrl = generateAvatarUrl(randomConfig);
-      onSelect(newUrl);
+      const newUrl = generateAvatarUrl(randomConfig)
+      onSelect(newUrl)
     }
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
   // Handle image loading error
   const handleImageError = () => {
-    console.log("Avatar image failed to load:", avatarUrl);
-    setImageError(true);
-    
+    console.log("Avatar image failed to load:", avatarUrl)
+    setImageError(true)
+
     // If there's an error, try to use a simpler default avatar
     if (onSelect && imageError) {
-      const fallbackUrl = `https://ui-avatars.com/api/?name=${avatarConfig.seed || 'User'}&background=019757&color=fff&size=150`;
-      onSelect(fallbackUrl);
+      const fallbackUrl = `https://ui-avatars.com/api/?name=${avatarConfig.seed || "User"}&background=019757&color=fff&size=150`
+      onSelect(fallbackUrl)
     }
-  };
+  }
 
   // Render a feature option in the modal
   const renderFeatureOption = ({ item }) => {
-    const isSelected = avatarConfig[currentFeature] === item;
-    
+    const isSelected = avatarConfig[currentFeature] === item
+
+    // Get a more user-friendly display name
+    let displayName = item
+
+    // For color features, show a color name if available
+    if (currentFeature?.includes("Color")) {
+      displayName = getColorName(item) || item
+    }
+    // For other features, format the camelCase to readable text
+    else {
+      displayName = item.replace(/([A-Z])/g, " $1").trim()
+    }
+
     return (
       <TouchableOpacity
         style={[
           styles.optionItem,
-          isSelected && styles.selectedOption
+          isSelected && styles.selectedOption,
+          currentFeature?.includes("Color") && {
+            backgroundColor: `#${item}`,
+            borderColor: isSelected ? "#019757" : "#e0e0e0",
+          },
         ]}
         onPress={() => selectFeatureOption(item)}
       >
-        <View style={styles.optionPreviewContainer}>
-          <Text style={styles.optionPreviewText}>
-            {item.charAt(0)}
+        <View
+          style={[styles.optionPreviewContainer, currentFeature?.includes("Color") && { backgroundColor: `#${item}` }]}
+        >
+          <Text style={[styles.optionPreviewText, currentFeature?.includes("Color") && { color: "#fff" }]}>
+            {displayName.charAt(0)}
           </Text>
         </View>
-        <Text style={[
-          styles.optionText,
-          isSelected && styles.selectedOptionText
-        ]}>
-          {item.replace(/([A-Z])/g, ' $1').trim()}
+        <Text
+          style={[
+            styles.optionText,
+            isSelected && styles.selectedOptionText,
+            currentFeature?.includes("Color") && { color: "#000" },
+          ]}
+        >
+          {displayName}
         </Text>
       </TouchableOpacity>
-    );
-  };
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -128,48 +165,32 @@ export default function AvatarSelector({ selectedAvatar, onSelect }) {
           {loading ? (
             <ActivityIndicator size="large" color="#019757" />
           ) : (
-            <Image
-              source={{ uri: avatarUrl }}
-              style={styles.avatar}
-              onError={handleImageError}
-            />
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} onError={handleImageError} />
           )}
         </View>
-        
-        <TouchableOpacity 
-          style={styles.randomizeButton}
-          onPress={handleRandomize}
-        >
+
+        <TouchableOpacity style={styles.randomizeButton} onPress={handleRandomize}>
           <Ionicons name="shuffle" size={18} color="#fff" />
           <Text style={styles.randomizeText}>Randomize</Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Feature Selection Buttons */}
       <View style={styles.featuresContainer}>
         <Text style={styles.sectionTitle}>Customize Your Avatar</Text>
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.featureButtonsContainer}
-        >
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.featureButtonsContainer}>
           {Object.keys(featureLabels).map((feature) => (
-            <TouchableOpacity
-              key={feature}
-              style={styles.featureButton}
-              onPress={() => openFeatureModal(feature)}
-            >
+            <TouchableOpacity key={feature} style={styles.featureButton} onPress={() => openFeatureModal(feature)}>
               <Text style={styles.featureButtonText}>{featureLabels[feature]}</Text>
               <View style={styles.featureValueContainer}>
-                <Text style={styles.featureValueText}>
-                  {avatarConfig[feature]?.replace(/([A-Z])/g, ' $1').trim()}
-                </Text>
+                <Text style={styles.featureValueText}>{avatarConfig[feature]?.replace(/([A-Z])/g, " $1").trim()}</Text>
                 <Ionicons name="chevron-forward" size={18} color="#019757" />
               </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
-      
+
       {/* Options Modal */}
       <Modal
         animationType="slide"
@@ -180,17 +201,12 @@ export default function AvatarSelector({ selectedAvatar, onSelect }) {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Select {currentFeature ? featureLabels[currentFeature] : ""}
-              </Text>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setModalVisible(false)}
-              >
+              <Text style={styles.modalTitle}>Select {currentFeature ? featureLabels[currentFeature] : ""}</Text>
+              <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
-            
+
             <FlatList
               data={currentFeature ? avatarOptions[currentFeature] : []}
               renderItem={renderFeatureOption}
@@ -203,7 +219,7 @@ export default function AvatarSelector({ selectedAvatar, onSelect }) {
         </View>
       </Modal>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -368,4 +384,5 @@ const styles = StyleSheet.create({
     color: "#019757",
     fontWeight: "600",
   },
-});
+})
+

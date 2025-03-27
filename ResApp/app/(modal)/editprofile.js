@@ -1,5 +1,7 @@
+"use client"
+
 // app/(modal)/editprofile.js
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
 import {
   View,
   Text,
@@ -14,151 +16,153 @@ import {
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { auth, db } from "../config/firebase";
-import { getDoc, doc, updateDoc } from "firebase/firestore";
-import { Ionicons } from "@expo/vector-icons";
-import { defaultAvatarConfig, generateAvatarUrl } from "../config/avatarConfig";
+} from "react-native"
+import { useRouter } from "expo-router"
+import { auth, db } from "../config/firebase"
+import { getDoc, doc, updateDoc } from "firebase/firestore"
+import { Ionicons } from "@expo/vector-icons"
+import { defaultAvatarConfig, generateAvatarUrl } from "../config/avatarConfig"
+import RemoteSvg from "../../components/ui/RemoteSvg"
 
 export default function EditProfile() {
-  const router = useRouter();
+  const router = useRouter()
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [residence, setResidence] = useState("");
-  const [roomNo, setRoomNo] = useState("");
-  const [avatar, setAvatar] = useState("");
-  const [avatarConfig, setAvatarConfig] = useState(null);
-  const [bio, setBio] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [residence, setResidence] = useState("")
+  const [roomNo, setRoomNo] = useState("")
+  const [avatar, setAvatar] = useState("")
+  const [avatarConfig, setAvatarConfig] = useState(null)
+  const [bio, setBio] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     async function fetchProfile() {
       try {
         if (!auth.currentUser) {
-          console.log("No user is currently logged in.");
-          return;
+          console.log("No user is currently logged in.")
+          return
         }
-        const uid = auth.currentUser.uid;
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
+        const uid = auth.currentUser.uid
+        const userRef = doc(db, "users", uid)
+        const userSnap = await getDoc(userRef)
 
         if (userSnap.exists()) {
-          const data = userSnap.data();
-          setFirstName(data.firstName || "");
-          setLastName(data.lastName || "");
-          setEmail(data.email || "");
-          setPhoneNumber(data.phoneNumber || "");
-          setResidence(data.residence || "");
-          setRoomNo(data.roomNumber || "");
-          setAvatar(data.avatar || "");
-          setAvatarConfig(data.avatarConfig || null);
-          setBio(data.bio || "");
+          const data = userSnap.data()
+          setFirstName(data.firstName || "")
+          setLastName(data.lastName || "")
+          setEmail(data.email || "")
+          setPhoneNumber(data.phoneNumber || "")
+          setResidence(data.residence || "")
+          setRoomNo(data.roomNumber || "")
+          setAvatar(data.avatar || "")
+          setAvatarConfig(data.avatarConfig || null)
+          setBio(data.bio || "")
         } else {
-          console.log("Profile document was not found in Firestore.");
-          Alert.alert("Error", "User profile not found.");
+          console.log("Profile document was not found in Firestore.")
+          Alert.alert("Error", "User profile not found.")
         }
       } catch (error) {
-        console.log("Problem fetching user data:", error);
-        Alert.alert("Error", error.toString());
+        console.log("Problem fetching user data:", error)
+        Alert.alert("Error", error.toString())
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
-    fetchProfile();
-  }, []);
+    fetchProfile()
+  }, [])
 
   const handleSaveChanges = async () => {
     try {
-      setSaving(true);
-      if (!auth.currentUser) return;
-      const uid = auth.currentUser.uid;
-      const userRef = doc(db, "users", uid);
+      setSaving(true)
+      if (!auth.currentUser) return
+      const uid = auth.currentUser.uid
+      const userRef = doc(db, "users", uid)
       await updateDoc(userRef, {
         firstName,
         lastName,
         email,
         phoneNumber,
         bio,
-      });
-      Alert.alert("Success", "Profile updated successfully.");
-      router.push("/home/profile");
+      })
+      Alert.alert("Success", "Profile updated successfully.")
+      router.push("/home/profile")
     } catch (error) {
-      Alert.alert("Error", error.toString());
+      Alert.alert("Error", error.toString())
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const handleCancel = () => {
-    router.push("/home/profile");
-  };
+    router.push("/home/profile")
+  }
 
-  // Use the saved avatar configuration or generate from URL
+  // Update the getAvatarSource function to better handle SVG images
   const getAvatarSource = () => {
     // If user has a saved avatar URL, use it directly
     if (avatar) {
-      return { uri: avatar };
+      return { uri: avatar }
     }
-    
+
     // If user has a saved avatar configuration, generate URL
     if (avatarConfig) {
-      const avatarUrl = generateAvatarUrl(avatarConfig);
-      return { uri: avatarUrl };
+      const avatarUrl = generateAvatarUrl(avatarConfig)
+      return { uri: avatarUrl }
     }
-    
+
     // Otherwise use default avatar
     const defaultConfig = {
       ...defaultAvatarConfig,
-      seed: firstName || "User"
-    };
-    return { uri: generateAvatarUrl(defaultConfig) };
-  };
+      seed: firstName || "User",
+    }
+    return { uri: generateAvatarUrl(defaultConfig) }
+  }
 
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#019757" />
       </SafeAreaView>
-    );
+    )
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#e8f5e9" />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView 
-          contentContainerStyle={styles.container}
-          showsVerticalScrollIndicator={false}
-        >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={handleCancel}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
               <Ionicons name="chevron-back" size={24} color="#019757" />
             </TouchableOpacity>
             <Text style={styles.title}>Edit Profile</Text>
             <View style={styles.backButton} />
           </View>
 
+          {/* Replace the avatar section in the render part with this improved version */}
+          {/* Find the <View style={styles.avatarSection}> and replace its contents with: */}
           <View style={styles.avatarSection}>
-            <Image 
-              source={getAvatarSource()} 
-              style={styles.avatar}
-              onError={(e) => console.log("Avatar failed to load:", e.nativeEvent.error)}
-            />
-            <TouchableOpacity
-              style={styles.changeAvatarButton}
-              onPress={() => router.push("/(modal)/editavatar")}
-            >
+            {avatar && avatar.includes("/svg") ? (
+              <View style={styles.avatarContainer}>
+                <RemoteSvg uri={avatar} width={120} height={120} />
+              </View>
+            ) : (
+              <Image
+                source={getAvatarSource()}
+                style={styles.avatar}
+                onError={(e) => {
+                  console.log("Avatar failed to load:", e.nativeEvent.error)
+                  // Fallback to a simple avatar with initials
+                  const fallbackUrl = `https://ui-avatars.com/api/?name=${firstName || "User"}&background=019757&color=fff&size=120`
+                  setAvatar(fallbackUrl)
+                }}
+              />
+            )}
+            <TouchableOpacity style={styles.changeAvatarButton} onPress={() => router.push("/(modal)/editavatar")}>
               <Ionicons name="person-circle-outline" size={20} color="#fff" style={styles.buttonIcon} />
               <Text style={styles.changeAvatarText}>Change Avatar</Text>
             </TouchableOpacity>
@@ -182,7 +186,7 @@ export default function EditProfile() {
                   placeholderTextColor="#aaa"
                 />
               </View>
-              
+
               <Text style={styles.inputLabel}>Last Name</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="person-outline" size={20} color="#019757" />
@@ -194,7 +198,7 @@ export default function EditProfile() {
                   placeholderTextColor="#aaa"
                 />
               </View>
-              
+
               <Text style={styles.inputLabel}>Email</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="mail-outline" size={20} color="#019757" />
@@ -208,7 +212,7 @@ export default function EditProfile() {
                   autoCapitalize="none"
                 />
               </View>
-              
+
               <Text style={styles.inputLabel}>Phone Number</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="call-outline" size={20} color="#019757" />
@@ -223,7 +227,7 @@ export default function EditProfile() {
               </View>
             </View>
           </View>
-          
+
           {/* Residence Information Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -245,7 +249,7 @@ export default function EditProfile() {
                   placeholderTextColor="#aaa"
                 />
               </View>
-              
+
               <Text style={styles.inputLabel}>Room Number</Text>
               <View style={[styles.inputContainer, styles.disabledContainer]}>
                 <Ionicons name="bed-outline" size={20} color="#888" />
@@ -259,7 +263,7 @@ export default function EditProfile() {
               </View>
             </View>
           </View>
-          
+
           {/* Bio Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -267,7 +271,9 @@ export default function EditProfile() {
               <Text style={styles.sectionTitle}>About Me</Text>
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Bio <Text style={styles.charCount}>{bio.length}/250</Text></Text>
+              <Text style={styles.inputLabel}>
+                Bio <Text style={styles.charCount}>{bio.length}/250</Text>
+              </Text>
               <View style={styles.bioInputContainer}>
                 <TextInput
                   style={styles.bioInput}
@@ -285,11 +291,7 @@ export default function EditProfile() {
 
           {/* Action Buttons */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.saveButton} 
-              onPress={handleSaveChanges}
-              disabled={saving}
-            >
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges} disabled={saving}>
               {saving ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
@@ -299,12 +301,8 @@ export default function EditProfile() {
                 </>
               )}
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.cancelButton} 
-              onPress={handleCancel}
-              disabled={saving}
-            >
+
+            <TouchableOpacity style={styles.cancelButton} onPress={handleCancel} disabled={saving}>
               <Ionicons name="close-outline" size={20} color="#fff" style={styles.buttonIcon} />
               <Text style={styles.buttonText}>Discard Changes</Text>
             </TouchableOpacity>
@@ -312,7 +310,7 @@ export default function EditProfile() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -331,7 +329,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#e8f5e9",
   },
-  
+
   /* Header */
   header: {
     flexDirection: "row",
@@ -352,7 +350,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#019757",
   },
-  
+
   /* Avatar Section */
   avatarSection: {
     alignItems: "center",
@@ -386,7 +384,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  
+
   /* Cards */
   card: {
     backgroundColor: "#fff",
@@ -425,7 +423,7 @@ const styles = StyleSheet.create({
     color: "#666",
     fontWeight: "500",
   },
-  
+
   /* Input Fields */
   inputGroup: {
     width: "100%",
@@ -479,7 +477,7 @@ const styles = StyleSheet.create({
     color: "#888",
     fontWeight: "normal",
   },
-  
+
   /* Buttons */
   buttonContainer: {
     marginTop: 8,
@@ -519,4 +517,17 @@ const styles = StyleSheet.create({
   buttonIcon: {
     marginRight: 8,
   },
-});
+  avatarContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: "#fff",
+    marginBottom: 16,
+    backgroundColor: "#f0f0f0",
+    overflow: "hidden", // This is important to clip the SVG
+    justifyContent: "center",
+    alignItems: "center",
+  },
+})
+
