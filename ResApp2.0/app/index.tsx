@@ -23,7 +23,7 @@ export default function LandingPage() {
   };
 
   return (
-    <View style={styles.container}>
+    <View  testID="root" style={styles.container}>
       {/* Logo / Branding */}
       <View style={styles.logoContainer}>
         <Image

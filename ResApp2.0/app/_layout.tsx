@@ -1,4 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -9,24 +10,16 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        {/* First screen: login */}
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-
-        <Stack.Screen name="profile" options={{ headerShown: false}} />
-
-        {/* Main app with tabs */}
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-        
-
-        {/* Modals */}
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="dark" backgroundColor="#fff" />
-
+      <View testID="root-layout" style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+        <StatusBar style="dark" backgroundColor="#fff" />
+      </View>
     </ThemeProvider>
   );
 }
