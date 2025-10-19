@@ -1,5 +1,5 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 import HomeScreen from '../app/(tabs)/index';
 
 // Mock AsyncStorage (optional, if your component reads from it)
