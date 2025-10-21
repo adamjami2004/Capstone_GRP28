@@ -6,7 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -27,18 +27,52 @@ export default function ProfileScreen() {
   }
 
   const handleLogout = async () => {
-    try {
-      // Sign out from Firebase
-      await logOut();
-      
-      // Clear AsyncStorage session data
-      await AsyncStorage.removeItem("userEmail");
-      
-      // Navigate to landing page
-      router.replace("/");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log("Logout initiated...");
+              
+              // Clear AsyncStorage session data FIRST
+              await AsyncStorage.removeItem("userEmail");
+              console.log("AsyncStorage cleared");
+              
+              // Sign out from Firebase
+              await logOut();
+              console.log("Firebase sign out successful");
+              
+              // Small delay to ensure AsyncStorage is fully cleared
+              await new Promise(resolve => setTimeout(resolve, 200));
+              
+              // Clear navigation stack and navigate to landing page
+              router.dismissAll();
+              setTimeout(() => {
+                router.replace("/");
+                console.log("Navigation to landing page triggered");
+              }, 100);
+              
+            } catch (error) {
+              console.error("Logout failed:", error);
+              // Show alert to user
+              Alert.alert(
+                "Logout Failed",
+                "Unable to logout. Please try again.",
+                [{ text: "OK" }]
+              );
+            }
+          }
+        }
+      ]
+    );
   };
 
 
@@ -93,7 +127,11 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 80 }}
+      >
         {/* Profile Header */}
         <View style={styles.headerSection}>
           <View style={styles.avatarContainer}>
@@ -158,11 +196,15 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.logoutButton}
             onPress={handleLogout}
+            activeOpacity={0.7}
+            testID="logout-button"
           >
             <IconSymbol size={20} name="logout" color="#ef4444" />
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </View>
+        
+        <View style={{ height: 40 }} />
       </ScrollView>
     </ThemedView>
   )

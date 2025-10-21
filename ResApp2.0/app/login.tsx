@@ -1,11 +1,11 @@
 "use client"
 
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Image } from "react-native"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
 import { useState } from "react"
-import { LinearGradient } from "expo-linear-gradient"
-import { signIn } from "../helpers/authHelper";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ActivityIndicator, Alert, Dimensions, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { signIn, validateEmail, validatePassword } from "../helpers/authHelper"
 
 
 export const options = {
@@ -18,19 +18,65 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const handleLogin = async () => {
-    try {
-      await signIn(email, password);
+    // Reset errors
+    setEmailError("");
+    setPasswordError("");
 
-      // Save login session
-      await AsyncStorage.setItem("userEmail", email);
-
-      router.replace("/(tabs)"); // navigate to main app screen
-    } catch (err) {
-      console.log("Login failed", err);
-      // optionally show alert
+    // Validate inputs
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      setEmailError(emailValidation.error || "");
+      return;
     }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      setPasswordError(passwordValidation.error || "");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await signIn(email, password);
+
+      if (result.success) {
+        // Save login session
+        await AsyncStorage.setItem("userEmail", email);
+
+        // Navigate to main app screen
+        router.replace("/(tabs)");
+      } else {
+        // Show error alert
+        Alert.alert(
+          "Login Failed",
+          result.error || "Unable to login. Please try again.",
+          [{ text: "OK" }]
+        );
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      Alert.alert(
+        "Error",
+        "An unexpected error occurred. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const navigateToRegister = () => {
+    router.push("/register" as any);
+  };
+
+  const navigateToForgotPassword = () => {
+    router.push("/forgot-password" as any);
   };
 
   return (
@@ -47,31 +93,79 @@ export default function LoginPage() {
 
       <View style={styles.card}>
         <Text style={styles.title}>Welcome Back</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Username"
-          placeholderTextColor="#94a3b8"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#94a3b8"
-          value={password}
-          secureTextEntry
-          onChangeText={setPassword}
-        />
-        <TouchableOpacity style={styles.button} onPress={handleLogin} activeOpacity={0.8}>
+        
+        {/* Email Input */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={[styles.input, emailError ? styles.inputError : null]}
+            placeholder="Email"
+            placeholderTextColor="#94a3b8"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              setEmailError("");
+            }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!loading}
+          />
+          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+        </View>
+
+        {/* Password Input */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={[styles.input, passwordError ? styles.inputError : null]}
+            placeholder="Password"
+            placeholderTextColor="#94a3b8"
+            value={password}
+            secureTextEntry
+            onChangeText={(text) => {
+              setPassword(text);
+              setPasswordError("");
+            }}
+            editable={!loading}
+          />
+          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+        </View>
+
+        {/* Forgot Password Link */}
+        <TouchableOpacity 
+          onPress={navigateToForgotPassword} 
+          style={styles.forgotPasswordContainer}
+          disabled={loading}
+        >
+          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+        </TouchableOpacity>
+
+        {/* Login Button */}
+        <TouchableOpacity 
+          style={[styles.button, loading ? styles.buttonDisabled : null]} 
+          onPress={handleLogin} 
+          activeOpacity={0.8}
+          disabled={loading}
+        >
           <LinearGradient
-            colors={["#3b82f6", "#2563eb"]}
+            colors={loading ? ["#94a3b8", "#64748b"] : ["#3b82f6", "#2563eb"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>Login</Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.buttonText}>Login</Text>
+            )}
           </LinearGradient>
         </TouchableOpacity>
+
+        {/* Register Link */}
+        <View style={styles.registerContainer}>
+          <Text style={styles.registerPrompt}>Don't have an account? </Text>
+          <TouchableOpacity onPress={navigateToRegister} disabled={loading}>
+            <Text style={styles.registerLink}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={styles.footer}>© 2025 ResApp. All rights reserved.</Text>
@@ -154,17 +248,39 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: -0.5,
   },
+  inputContainer: {
+    marginBottom: 16,
+  },
   input: {
     borderWidth: 1.5,
     borderColor: "#e2e8f0",
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 18,
-    marginBottom: 16,
     fontSize: 16,
     color: "#1e293b",
     backgroundColor: "#f8fafc",
     fontWeight: "500",
+  },
+  inputError: {
+    borderColor: "#ef4444",
+    backgroundColor: "#fef2f2",
+  },
+  errorText: {
+    color: "#ef4444",
+    fontSize: 13,
+    marginTop: 6,
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  forgotPasswordContainer: {
+    alignItems: "flex-end",
+    marginBottom: 16,
+  },
+  forgotPasswordText: {
+    color: "#3b82f6",
+    fontSize: 14,
+    fontWeight: "600",
   },
   button: {
     borderRadius: 14,
@@ -175,16 +291,37 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
   buttonGradient: {
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 54,
   },
   buttonText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "700",
     letterSpacing: 0.5,
+  },
+  registerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  registerPrompt: {
+    color: "#64748b",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  registerLink: {
+    color: "#3b82f6",
+    fontSize: 15,
+    fontWeight: "700",
   },
   footer: {
     marginTop: 32,

@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from 'expo-router';
 import { useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -10,12 +10,26 @@ export default function LandingPage() {
 
   useEffect(() => {
     const checkLoggedIn = async () => {
-      const userEmail = await AsyncStorage.getItem("userEmail");
-      if (userEmail) {
-        router.replace("/(tabs)"); // navigate directly to Tabs
+      try {
+        const userEmail = await AsyncStorage.getItem("userEmail");
+        console.log("Landing page - checking userEmail:", userEmail);
+        if (userEmail) {
+          console.log("User is logged in, redirecting to tabs");
+          router.replace("/(tabs)"); // navigate directly to Tabs
+        } else {
+          console.log("No user session found, staying on landing page");
+        }
+      } catch (error) {
+        console.error("Error checking login status:", error);
       }
     };
-    checkLoggedIn();
+    
+    // Add a small delay to ensure the page is fully loaded
+    const timer = setTimeout(() => {
+      checkLoggedIn();
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const handleRoleSelect = () => {
