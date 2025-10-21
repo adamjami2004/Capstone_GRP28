@@ -1,13 +1,15 @@
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from "react-native"
-import { ThemedView } from "@/components/themed-view"
-import { IconSymbol } from "@/components/ui/icon-symbol"
-import { useEffect, useState } from "react";
+import { ThemedView } from "@/components/themed-view";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import AsyncStorage from "@react-native-async-storage/async-storage"; 
+import { logOut } from "@/helpers/signOutHelper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ProfileScreen() {
+  const router = useRouter();
 
   const [userInfo, setUserInfo] = useState({
     fullName: "",
@@ -23,6 +25,21 @@ export default function ProfileScreen() {
       .map(name => name[0].toUpperCase()) 
       .join("");                  
   }
+
+  const handleLogout = async () => {
+    try {
+      // Sign out from Firebase
+      await logOut();
+      
+      // Clear AsyncStorage session data
+      await AsyncStorage.removeItem("userEmail");
+      
+      // Navigate to landing page
+      router.replace("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
 
   useEffect(() => {
@@ -138,7 +155,10 @@ export default function ProfileScreen() {
 
         {/* Logout Button */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.logoutButton}>
+          <TouchableOpacity 
+            style={styles.logoutButton}
+            onPress={handleLogout}
+          >
             <IconSymbol size={20} name="logout" color="#ef4444" />
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>

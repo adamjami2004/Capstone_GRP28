@@ -1,10 +1,9 @@
-import { Tabs } from "expo-router"
-import React, { useState } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native"
-import { useRouter } from "expo-router";
-import { HapticTab } from "@/components/haptic-tab"
-import { IconSymbol } from "@/components/ui/icon-symbol"
-import { useColorScheme } from "@/hooks/use-color-scheme"
+import { HapticTab } from "@/components/haptic-tab";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Tabs, useRouter } from "expo-router";
+import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 
 
@@ -13,7 +12,7 @@ function CustomHeader() {
   const router = useRouter();
 
   const handleProfile= () => {
-    router.push("/profile"); 
+    router.push("/(tabs)/profile"); 
   };
 
 
