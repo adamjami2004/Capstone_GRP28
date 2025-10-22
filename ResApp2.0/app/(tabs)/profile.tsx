@@ -1,13 +1,16 @@
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from "react-native"
-import { ThemedView } from "@/components/themed-view"
-import { IconSymbol } from "@/components/ui/icon-symbol"
-import { useEffect, useState } from "react";
+import { RoomSeeder } from "@/components/admin/RoomSeeder";
+import { ThemedView } from "@/components/themed-view";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import AsyncStorage from "@react-native-async-storage/async-storage"; 
+import { logOut } from "@/helpers/signOutHelper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ProfileScreen() {
+  const router = useRouter();
 
   const [userInfo, setUserInfo] = useState({
     fullName: "",
@@ -15,6 +18,7 @@ export default function ProfileScreen() {
     position: "",
     residence: "",
   });
+  const [isAdmin, setIsAdmin] = useState(false);
 
   function getInitials(fullName: string) {
     if (!fullName) return "";
@@ -23,6 +27,59 @@ export default function ProfileScreen() {
       .map(name => name[0].toUpperCase()) 
       .join("");                  
   }
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log("Logout initiated...");
+              
+              // Clear AsyncStorage session data FIRST
+              await AsyncStorage.removeItem("userEmail");
+              console.log("AsyncStorage cleared");
+              
+              // Sign out from Firebase
+              await logOut();
+              console.log("Firebase sign out successful");
+              
+              // Verify logout was successful
+              if (auth.currentUser) {
+                console.log("Warning: User still logged in after logout attempt");
+              } else {
+                console.log("User successfully logged out from Firebase");
+              }
+              
+              // Small delay to ensure AsyncStorage is fully cleared
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              // Navigate directly to login page
+              router.replace("/login");
+              console.log("Navigation to login page triggered");
+              
+            } catch (error) {
+              console.error("Logout failed:", error);
+              // Show alert to user
+              Alert.alert(
+                "Logout Failed",
+                "Unable to logout. Please try again.",
+                [{ text: "OK" }]
+              );
+            }
+          }
+        }
+      ]
+    );
+  };
 
 
   useEffect(() => {
@@ -46,6 +103,8 @@ export default function ProfileScreen() {
             position: data.role || "",
             residence: data.residence || "",
           });
+          // Check if user is admin
+          setIsAdmin(data.role === "Admin" || data.role === "Super Admin");
         } else {
           console.log("No user found with that email in Firestore");
         }
@@ -76,7 +135,11 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 80 }}
+      >
         {/* Profile Header */}
         <View style={styles.headerSection}>
           <View style={styles.avatarContainer}>
@@ -136,13 +199,30 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Admin Tools - Only visible to admins */}
+        {isAdmin && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Admin Tools</Text>
+            <View style={styles.adminSection}>
+              <RoomSeeder />
+            </View>
+          </View>
+        )}
+
         {/* Logout Button */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.logoutButton}>
+          <TouchableOpacity 
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+            testID="logout-button"
+          >
             <IconSymbol size={20} name="logout" color="#ef4444" />
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </View>
+        
+        <View style={{ height: 40 }} />
       </ScrollView>
     </ThemedView>
   )
@@ -296,6 +376,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   settingTitle: { fontSize: 14, fontWeight: "600", color: "#000", textAlign: "center" },
+
+  // Admin Section
+  adminSection: {
+    paddingHorizontal: 20,
+  },
 
   // Logout Button
   logoutButton: {

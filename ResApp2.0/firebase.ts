@@ -1,8 +1,7 @@
 import Constants from "expo-constants";
 import { initializeApp } from "firebase/app";
-import { getAuth, initializeAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 interface ExpoExtra {
@@ -31,5 +30,8 @@ const firebaseConfig = {
 
 
 const app = initializeApp(firebaseConfig);
+
+// Initialize auth - Firebase v9+ handles persistence automatically in React Native
 export const auth = getAuth(app);
+
 export const db = getFirestore(app);
