@@ -1,3 +1,4 @@
+import { RoomSeeder } from "@/components/admin/RoomSeeder";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
@@ -17,6 +18,7 @@ export default function ProfileScreen() {
     position: "",
     residence: "",
   });
+  const [isAdmin, setIsAdmin] = useState(false);
 
   function getInitials(fullName: string) {
     if (!fullName) return "";
@@ -101,6 +103,8 @@ export default function ProfileScreen() {
             position: data.role || "",
             residence: data.residence || "",
           });
+          // Check if user is admin
+          setIsAdmin(data.role === "Admin" || data.role === "Super Admin");
         } else {
           console.log("No user found with that email in Firestore");
         }
@@ -194,6 +198,16 @@ export default function ProfileScreen() {
             ))}
           </View>
         </View>
+
+        {/* Admin Tools - Only visible to admins */}
+        {isAdmin && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Admin Tools</Text>
+            <View style={styles.adminSection}>
+              <RoomSeeder />
+            </View>
+          </View>
+        )}
 
         {/* Logout Button */}
         <View style={styles.section}>
@@ -362,6 +376,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   settingTitle: { fontSize: 14, fontWeight: "600", color: "#000", textAlign: "center" },
+
+  // Admin Section
+  adminSection: {
+    paddingHorizontal: 20,
+  },
 
   // Logout Button
   logoutButton: {

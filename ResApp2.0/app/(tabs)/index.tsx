@@ -1,15 +1,16 @@
 "use client"
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { auth, db } from "@/firebase"; 
-import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { auth, db } from "@/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function HomeScreen() {
   const [firstName, setFirstName] = useState<string>("");
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -84,7 +85,10 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Operations</Text>
           <View style={styles.operationsContainer}>
-            <TouchableOpacity style={styles.operationCard}>
+            <TouchableOpacity 
+              style={styles.operationCard}
+              onPress={() => router.push("/(tabs)/reservations")}
+            >
               <View style={[styles.operationIcon, { backgroundColor: "#3b82f6" }]}>
                 <IconSymbol size={20} name="door.left.hand.open" color="#fff" />
               </View>
