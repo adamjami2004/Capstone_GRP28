@@ -21,6 +21,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [residence, setResidence] = useState("");
+  const [selectedRole, setSelectedRole] = useState("Staff");
   const [loading, setLoading] = useState(false);
   
   // Error states
@@ -71,7 +72,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const result = await registerUser(email, password, firstName, lastName, "Staff", residence);
+            const result = await registerUser(email, password, firstName, lastName, selectedRole, residence);
 
       if (result.success) {
         // Save login session
@@ -188,6 +189,40 @@ export default function RegisterPage() {
               onChangeText={setResidence}
               editable={!loading}
             />
+          </View>
+
+          {/* Role Selection */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.roleLabel}>Select Your Role</Text>
+            <View style={styles.roleSelectionContainer}>
+              {["Staff", "CA", "TL"].map((role) => (
+                <TouchableOpacity
+                  key={role}
+                  style={[
+                    styles.roleOption,
+                    selectedRole === role && styles.roleOptionSelected
+                  ]}
+                  onPress={() => setSelectedRole(role)}
+                  disabled={loading}
+                >
+                  <Text style={[
+                    styles.roleOptionText,
+                    selectedRole === role && styles.roleOptionTextSelected
+                  ]}>
+                    {role}
+                  </Text>
+                  {role === "TL" && (
+                    <Text style={styles.roleDescription}>Team Lead</Text>
+                  )}
+                  {role === "CA" && (
+                    <Text style={styles.roleDescription}>Campus Administrator</Text>
+                  )}
+                  {role === "Staff" && (
+                    <Text style={styles.roleDescription}>Regular Staff</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           {/* Password Input */}
@@ -374,6 +409,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
+  },
+  roleLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 12,
+  },
+  roleSelectionContainer: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  roleOption: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+    alignItems: "center",
+  },
+  roleOptionSelected: {
+    borderColor: "#3b82f6",
+    backgroundColor: "#f0f9ff",
+  },
+  roleOptionText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#64748b",
+  },
+  roleOptionTextSelected: {
+    color: "#3b82f6",
+  },
+  roleDescription: {
+    fontSize: 12,
+    color: "#64748b",
+    marginTop: 4,
+    textAlign: "center",
   },
   button: {
     borderRadius: 14,

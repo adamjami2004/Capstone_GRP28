@@ -50,15 +50,19 @@ export default function ProfileScreen() {
               await logOut();
               console.log("Firebase sign out successful");
               
-              // Small delay to ensure AsyncStorage is fully cleared
-              await new Promise(resolve => setTimeout(resolve, 200));
+              // Verify logout was successful
+              if (auth.currentUser) {
+                console.log("Warning: User still logged in after logout attempt");
+              } else {
+                console.log("User successfully logged out from Firebase");
+              }
               
-              // Clear navigation stack and navigate to landing page
-              router.dismissAll();
-              setTimeout(() => {
-                router.replace("/");
-                console.log("Navigation to landing page triggered");
-              }, 100);
+              // Small delay to ensure AsyncStorage is fully cleared
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              // Navigate directly to login page
+              router.replace("/login");
+              console.log("Navigation to login page triggered");
               
             } catch (error) {
               console.error("Logout failed:", error);
