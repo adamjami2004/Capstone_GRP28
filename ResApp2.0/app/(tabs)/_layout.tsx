@@ -91,15 +91,14 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
-          name="resources"
+          name="reservations"
           options={{
-            title: "Resources",
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="book.fill" color={color} />,
+            href: null, 
           }}
         />
 
         <Tabs.Screen
-          name="reservations"
+          name="todo-list"
           options={{
             href: null, 
           }}

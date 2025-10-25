@@ -39,8 +39,8 @@ export default function HomeScreen() {
   }, []);
 
   const quickAccessItems = [
-    { id: 5, title: "Duty Calendar", icon: "calendar", color: "#8b5cf6" },
-    { id: 1, title: "To-Do List", icon: "checklist", color: "#3b82f6" },
+    { id: 5, title: "Duty Calendar", icon: "calendar", color: "#8b5cf6", route: "/(tabs)/calendar" },
+    { id: 1, title: "To-Do List", icon: "checklist", color: "#3b82f6", route: "/(tabs)/todo-list" },
     { id: 6, title: "Protection", icon: "shield", color: "#ef4444" },
     { id: 2, title: "Deadlines", icon: "clock", color: "#ec4899" },
     { id: 3, title: "Sway", icon: "tv", color: "#10b981" },
@@ -71,7 +71,11 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Quick Access</Text>
           <View style={styles.quickAccessGrid}>
             {quickAccessItems.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.quickAccessCard}>
+              <TouchableOpacity 
+                key={item.id} 
+                style={styles.quickAccessCard}
+                onPress={() => item.route && router.push(item.route as any)}
+              >
                 <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
                   <IconSymbol size={20} name={item.icon} color="#fff" />
                 </View>
