@@ -106,6 +106,13 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
+          name="todo-list"
+          options={{
+            href: null, 
+          }}
+        />
+
+        <Tabs.Screen
           name="profile"
           options={{
             href: null, 
