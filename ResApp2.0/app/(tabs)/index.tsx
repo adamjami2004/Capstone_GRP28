@@ -44,7 +44,7 @@ export default function HomeScreen() {
     { id: 6, title: "Protection", icon: "shield", color: "#ef4444" },
     { id: 2, title: "Deadlines", icon: "clock", color: "#ec4899" },
     { id: 3, title: "Sway", icon: "tv", color: "#10b981" },
-    { id: 4, title: "Resources", icon: "book", color: "#f59e0b", route: "/(tabs)/resources" },
+    { id: 4, title: "Resources", icon: "book", color: "#f59e0b" },
   ];
 
   return (
