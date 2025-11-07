@@ -41,7 +41,7 @@ export default function LandingPage() {
       {/* Logo / Branding */}
       <View style={styles.logoContainer}>
         <Image
-          source={require('@/assets/images/logo.png')} // replace with your logo
+          source={require('@/assets/images/logo.png')} 
           style={styles.logo}
           resizeMode="contain"
         />
