@@ -4,38 +4,11 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Tabs, useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { CustomHeader } from "@/components/CustomHeader";
 
 
 
 
-function CustomHeader() {
-  const router = useRouter();
-
-  const handleProfile= () => {
-    router.push("/(tabs)/profile"); 
-  };
-
-
-
-
-  return (
-    <View style={styles.header}>
-      <TouchableOpacity style={styles.iconButton} onPress={() => router.push("/Sidebar")}>
-        <IconSymbol size={24} name="line.horizontal.3" color="#000" />
-      </TouchableOpacity>
-
-
-      <View style={styles.headerRight}>
-        <TouchableOpacity style={styles.iconButton} >
-          <IconSymbol size={24} name="gearshape.fill" color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton} onPress={handleProfile} >
-          <IconSymbol size={24} name="person.circle.fill" color="#000" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  )
-}
 
 export default function TabLayout() {
   const colorScheme = useColorScheme()
