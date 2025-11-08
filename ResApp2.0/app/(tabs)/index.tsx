@@ -54,12 +54,12 @@ export default function HomeScreen() {
   }, []);
 
   const quickAccessItems = [
-    { id: 1, title: "Duty Calendar", icon: "calendar", color: "#8b5cf6", route: "/(tabs)/calendar" },
-    { id: 2, title: "To-Do List", icon: "checklist", color: "#3b82f6", route: "/(tabs)/todo-list" },
-    { id: 3, title: "Status", icon: "chart.bar.fill", color: "#ec4899", route: "/(tabs)/status" },
-    { id: 4, title: "Protection", icon: "shield.fill", color: "#ef4444" },
-    { id: 5, title: "Sway Resources", icon: "play.tv.fill", color: "#10b981" },
-    { id: 6, title: "Room Reservations", icon: "door.left.hand.open", color: "#f59e0b", route: "/(tabs)/reservations" },
+    { id: 5, title: "Duty Calendar", icon: "calendar", color: "#8b5cf6", route: "/(tabs)/calendar" },
+    { id: 1, title: "To-Do List", icon: "checklist", color: "#3b82f6", route: "/(tabs)/todo-list" },
+    { id: 6, title: "Protection", icon: "shield", color: "#ef4444" },
+    { id: 2, title: "Deadlines", icon: "clock", color: "#ec4899" },
+    { id: 3, title: "Sway", icon: "tv", color: "#10b981" },
+    { id: 4, title: "Resources", icon: "book", color: "#f59e0b", route: "/(tabs)/ressources" },
   ];
 
   return (

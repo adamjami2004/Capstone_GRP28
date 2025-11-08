@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-
+import { getStorage } from "firebase/storage";
 
 interface ExpoExtra {
   firebaseApiKey: string;
@@ -11,7 +11,7 @@ interface ExpoExtra {
   firebaseStorageBucket: string;
   firebaseMessagingSenderId: string;
   firebaseAppId: string;
-  firebaseMeasurementId?: string; 
+  firebaseMeasurementId?: string;
 }
 
 const extra = Constants.expoConfig?.extra as ExpoExtra;
@@ -25,13 +25,10 @@ const firebaseConfig = {
   appId: extra.firebaseAppId,
 };
 
-
-
-
+console.log("Firebase config:", firebaseConfig); // ✅ add this line
 
 const app = initializeApp(firebaseConfig);
 
-// Initialize auth - Firebase v9+ handles persistence automatically in React Native
 export const auth = getAuth(app);
-
 export const db = getFirestore(app);
+export const storage = getStorage(app);
