@@ -1,10 +1,10 @@
+import { CustomHeader } from "@/components/CustomHeader";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Tabs, useRouter } from "expo-router";
+import { Tabs } from "expo-router";
 import React from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { CustomHeader } from "@/components/CustomHeader";
+import { StyleSheet, View } from "react-native";
 
 
 
@@ -19,23 +19,69 @@ export default function TabLayout() {
 
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: "#000",
-          tabBarInactiveTintColor: "#666",
+          tabBarActiveTintColor: "#2563eb",
+          tabBarInactiveTintColor: "#94a3b8",
           tabBarStyle: {
-            backgroundColor: "#fff",
-            borderTopWidth: 1,
-            borderTopColor: "#e5e5e5",
+            position: "absolute",
+            bottom: 12,
+            left: 20,
+            right: 20,
+            backgroundColor: "#ffffff",
+            borderTopWidth: 0,
+            height: 70,
+            paddingTop: 8,
+            paddingBottom: 8,
+            paddingHorizontal: 20,
+            borderRadius: 24,
+            elevation: 10,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 5 },
+            shadowOpacity: 0.12,
+            shadowRadius: 15,
+            borderWidth: 1,
+            borderColor: "#f1f5f9",
           },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: "600",
+            marginTop: 4,
+            marginBottom: 0,
+          },
+          tabBarShowLabel: true,
+          tabBarHideOnKeyboard: true,
           headerShown: false,
           tabBarButton: HapticTab,
         }}
       >
+        <Tabs.Screen
+          name="feed"
+          options={{
+            title: "Feed",
+            tabBarIcon: ({ color, focused }) => (
+              <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+                <IconSymbol 
+                  size={22} 
+                  name="list.bullet.rectangle.fill" 
+                  color={focused ? "#2563eb" : color} 
+                />
+              </View>
+            ),
+          }}
+        />
 
         <Tabs.Screen
           name="index"
           options={{
             title: "Home",
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+                <IconSymbol 
+                  size={22} 
+                  name="house.fill" 
+                  color={focused ? "#2563eb" : color} 
+                />
+              </View>
+            ),
           }}
         />
         
@@ -43,23 +89,29 @@ export default function TabLayout() {
           name="duty"
           options={{
             title: "Duty",
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="building.fill" color={color} />,
+            tabBarIcon: ({ color, focused }) => (
+              <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+                <IconSymbol 
+                  size={22} 
+                  name="building.2.fill" 
+                  color={focused ? "#2563eb" : color} 
+                />
+              </View>
+            ),
           }}
         />
 
         <Tabs.Screen
           name="calendar"
           options={{
-            title: "Calendar",
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="alarm.fill" color={color} />,
+            href: null, 
           }}
         />
 
         <Tabs.Screen
           name="status"
           options={{
-            title: "Status",
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="printer.fill" color={color} />,
+            href: null, 
           }}
         />
 
@@ -118,7 +170,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-    navbar: {
+  navbar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -126,5 +178,11 @@ const styles = StyleSheet.create({
     height: 60,
     backgroundColor: "#fff",
   },
-  
+  tabIcon: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabIconFocused: {
+    transform: [{ scale: 1.1 }],
+  },
 })
