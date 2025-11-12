@@ -3,28 +3,28 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
 import {
-    cancelReservation,
-    createReservation,
-    fetchRoomReservations,
-    fetchRooms,
-    fetchUserReservations,
-    formatDate,
-    formatTime,
-    updateReservation,
+  cancelReservation,
+  createReservation,
+  fetchRoomReservations,
+  fetchRooms,
+  fetchUserReservations,
+  formatDate,
+  formatTime,
+  updateReservation,
 } from "@/helpers/reservationHelper";
 import { Reservation, Room } from "@/types/reservation";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function ReservationsScreen() {
@@ -609,6 +609,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8f9fa",
+    paddingBottom: 100,
   },
   scrollView: {
     flex: 1,

@@ -1331,7 +1331,7 @@ export default function DutyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f9fa" },
+  container: { flex: 1, backgroundColor: "#f8f9fa", paddingBottom: 100 },
   content: { flex: 1 },
   
   // Header

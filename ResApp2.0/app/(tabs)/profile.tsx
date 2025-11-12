@@ -157,7 +157,8 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa"
+    backgroundColor: "#f8f9fa",
+    paddingBottom: 120,
   },
   headerSection: {
     backgroundColor: "#fff",
@@ -274,7 +275,7 @@ const styles = StyleSheet.create({
   },
   bottomSection: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   logoutButton: {
     flexDirection: "row",
