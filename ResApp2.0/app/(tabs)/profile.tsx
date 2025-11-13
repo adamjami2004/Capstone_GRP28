@@ -2,12 +2,13 @@ import { RoomSeeder } from "@/components/admin/RoomSeeder";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
+import { changeProfilePicture } from "@/helpers/profileHelper";
 import { logOut } from "@/helpers/signOutHelper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -17,8 +18,10 @@ export default function ProfileScreen() {
     email: "",
     position: "",
     residence: "",
+    profilePicture: "",
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
 
   function getInitials(fullName: string) {
     if (!fullName) return "";
@@ -27,6 +30,28 @@ export default function ProfileScreen() {
       .map(name => name[0].toUpperCase())
       .join("");
   }
+
+  const handleChangeProfilePicture = async () => {
+    setUploadingPicture(true);
+    try {
+      const result = await changeProfilePicture();
+      
+      if (result.success && result.profilePictureUrl) {
+        setUserInfo(prev => ({
+          ...prev,
+          profilePicture: result.profilePictureUrl || "",
+        }));
+        Alert.alert("Success", "Profile picture updated successfully!");
+      } else {
+        Alert.alert("Error", result.error || "Failed to update profile picture");
+      }
+    } catch (error) {
+      console.error("Error changing profile picture:", error);
+      Alert.alert("Error", "An unexpected error occurred");
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -79,6 +104,7 @@ export default function ProfileScreen() {
             email: data.email || "",
             position: data.role || "",
             residence: data.residence || "",
+            profilePicture: data.profilePicture || "",
           });
           setIsAdmin(data.role === "Admin" || data.role === "Super Admin");
         }
@@ -101,10 +127,29 @@ export default function ProfileScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.headerSection}>
         <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(userInfo.fullName)}</Text>
-          </View>
+          {userInfo.profilePicture ? (
+            <Image
+              source={{ uri: userInfo.profilePicture }}
+              style={styles.avatarImage}
+            />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getInitials(userInfo.fullName)}</Text>
+            </View>
+          )}
           <View style={styles.statusBadge} />
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={handleChangeProfilePicture}
+            disabled={uploadingPicture}
+            activeOpacity={0.7}
+          >
+            {uploadingPicture ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <IconSymbol size={16} name="camera.fill" color="#fff" />
+            )}
+          </TouchableOpacity>
         </View>
         <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
           {userInfo.fullName}
@@ -189,10 +234,39 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#8b5cf6",
+    shadowColor: "#8b5cf6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
+  },
   avatarText: {
     fontSize: 32,
     fontWeight: "700",
     color: "#fff"
+  },
+  editButton: {
+    position: "absolute",
+    bottom: 0,
+    right: -4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#fff",
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   statusBadge: {
     position: "absolute",

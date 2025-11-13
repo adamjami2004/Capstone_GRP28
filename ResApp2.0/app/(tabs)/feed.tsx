@@ -11,6 +11,7 @@ import {
   toggleLike,
   updatePost,
 } from "@/helpers/feedHelper";
+import { pickImage, uploadPostImage } from "@/helpers/imageHelper";
 import { Post } from "@/types/feed";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useEffect, useState } from "react";
@@ -18,6 +19,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Image,
   Modal,
   Platform,
   RefreshControl,
@@ -43,6 +45,8 @@ export default function FeedScreen() {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadPosts();
@@ -71,6 +75,7 @@ export default function FeedScreen() {
     setTitle("");
     setDescription("");
     setDate(new Date());
+    setSelectedImageUri(null);
     setShowCreateModal(true);
   };
 
@@ -79,6 +84,7 @@ export default function FeedScreen() {
     setTitle(post.title);
     setDescription(post.description);
     setDate(new Date(post.date));
+    setSelectedImageUri(post.imageUrl || null);
     setShowEditModal(true);
   };
 
@@ -139,6 +145,28 @@ export default function FeedScreen() {
     }
   };
 
+  const handlePickImage = async () => {
+    try {
+      setUploadingImage(true);
+      const image = await pickImage();
+      if (image) {
+        setSelectedImageUri(image.uri);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to pick image"
+      );
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImageUri(null);
+  };
+
   const handleSubmitCreate = async () => {
     if (!title.trim()) {
       Alert.alert("Error", "Please enter a title");
@@ -151,10 +179,26 @@ export default function FeedScreen() {
 
     setSubmitting(true);
     try {
+      let imageUrl: string | undefined = undefined;
+
+      // Upload image if one was selected
+      if (selectedImageUri && auth.currentUser) {
+        try {
+          imageUrl = await uploadPostImage(
+            selectedImageUri,
+            auth.currentUser.uid
+          );
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          Alert.alert("Warning", "Failed to upload image. Creating post without image.");
+        }
+      }
+
       const result = await createPost({
         title: title.trim(),
         description: description.trim(),
         date: date.toISOString(),
+        imageUrl,
       });
 
       if (result.success) {
@@ -186,10 +230,26 @@ export default function FeedScreen() {
 
     setSubmitting(true);
     try {
+      let imageUrl: string | undefined = selectedPost.imageUrl;
+
+      // Upload new image if a new one was selected
+      if (selectedImageUri && selectedImageUri !== selectedPost.imageUrl && auth.currentUser) {
+        try {
+          imageUrl = await uploadPostImage(
+            selectedImageUri,
+            auth.currentUser.uid
+          );
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          Alert.alert("Warning", "Failed to upload image. Keeping existing image.");
+        }
+      }
+
       const result = await updatePost(selectedPost.id, {
         title: title.trim(),
         description: description.trim(),
         date: date.toISOString(),
+        imageUrl,
       });
 
       if (result.success) {
@@ -234,9 +294,16 @@ export default function FeedScreen() {
         <View style={styles.postHeader}>
           <View style={styles.postUserInfo}>
             <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <IconSymbol name="person.fill" size={20} color="#fff" />
-              </View>
+              {post.userProfilePicture ? (
+                <Image
+                  source={{ uri: post.userProfilePicture }}
+                  style={styles.postAvatar}
+                />
+              ) : (
+                <View style={styles.avatar}>
+                  <IconSymbol name="person.fill" size={20} color="#fff" />
+                </View>
+              )}
               <View style={styles.activeIndicator} />
             </View>
             <View style={{ flex: 1 }}>
@@ -304,6 +371,15 @@ export default function FeedScreen() {
           </View>
 
           <Text style={styles.postDescription}>{post.description}</Text>
+
+          {/* Post Image */}
+          {post.imageUrl && (
+            <Image
+              source={{ uri: post.imageUrl }}
+              style={styles.postImage}
+              resizeMode="cover"
+            />
+          )}
 
           {/* Event Date Card */}
           <View style={styles.eventDateCard}>
@@ -400,6 +476,43 @@ export default function FeedScreen() {
                 multiline
                 numberOfLines={4}
               />
+            </View>
+
+            {/* Image Picker */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Event Image (Optional)</Text>
+              {selectedImageUri ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image
+                    source={{ uri: selectedImageUri }}
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={handleRemoveImage}
+                  >
+                    <IconSymbol name="xmark.circle.fill" size={24} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.imagePickerButton}
+                  onPress={handlePickImage}
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? (
+                    <ActivityIndicator color="#3b82f6" />
+                  ) : (
+                    <>
+                      <View style={styles.imagePickerIcon}>
+                        <IconSymbol name="photo" size={20} color="#3b82f6" />
+                      </View>
+                      <Text style={styles.imagePickerText}>Add Image</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Date Picker */}
@@ -686,6 +799,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#3b82f6",
     justifyContent: "center",
     alignItems: "center",
+  },
+  postAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#3b82f6",
   },
   activeIndicator: {
     position: "absolute",
@@ -989,5 +1108,64 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#fff",
+  },
+  postImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: "#f3f4f6",
+  },
+  imagePickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f9fafb",
+    borderRadius: 14,
+    padding: 20,
+    gap: 12,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+  },
+  imagePickerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#dbeafe",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imagePickerText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#3b82f6",
+  },
+  imagePreviewContainer: {
+    position: "relative",
+    width: "100%",
+    height: 200,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  imagePreview: {
+    width: "100%",
+    height: "100%",
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 20,
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });

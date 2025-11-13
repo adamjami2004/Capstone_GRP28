@@ -24,19 +24,21 @@ export const createPost = async (
       return { success: false, error: "User not authenticated" };
     }
 
-    // Get user's name from Users collection
+    // Get user's name and profile picture from Users collection
     const usersRef = collection(db, "Users");
     const userQuery = query(usersRef, where("uid", "==", user.uid));
     const userSnapshot = await getDocs(userQuery);
 
     let userName = "Anonymous";
+    let userProfilePicture: string | undefined = undefined;
     if (!userSnapshot.empty) {
       const userData = userSnapshot.docs[0].data();
       userName = `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.Email || "Anonymous";
+      userProfilePicture = userData.profilePicture || undefined;
     }
 
     // Create post document
-    const postData: Omit<Post, "id"> = {
+    const postData: any = {
       userId: user.uid,
       userName,
       title: data.title,
@@ -47,6 +49,14 @@ export const createPost = async (
       likes: [],
       likeCount: 0,
     };
+
+    // Only add optional fields if they exist (Firestore doesn't accept undefined)
+    if (data.imageUrl) {
+      postData.imageUrl = data.imageUrl;
+    }
+    if (userProfilePicture) {
+      postData.userProfilePicture = userProfilePicture;
+    }
 
     const docRef = await addDoc(collection(db, "Posts"), postData);
 
@@ -150,6 +160,11 @@ export const updatePost = async (
     // Update date if provided
     if (data.date !== undefined) {
       updateData.date = data.date;
+    }
+
+    // Update imageUrl if provided (only if it's not undefined)
+    if (data.imageUrl !== undefined && data.imageUrl !== null) {
+      updateData.imageUrl = data.imageUrl;
     }
 
     const postRef = doc(db, "Posts", postId);
