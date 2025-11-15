@@ -12,12 +12,13 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Linking,
 } from "react-native"
 import * as DocumentPicker from "expo-document-picker"
-import { db, storage } from "../../firebase";
+import { db, storage } from "../../firebase"
 import { collection, getDocs, query, orderBy, doc, updateDoc } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
-import { Linking } from "react-native"
+import { getAuth, signInAnonymously } from "firebase/auth"
 
 type Attachment = {
   type: "pdf" | "link"
@@ -47,6 +48,11 @@ type Category = {
   title: string
   order?: number
   subcategories: Subcategory[]
+}
+
+async function ensureSignedIn() {
+  const auth = getAuth()
+  if (!auth.currentUser) await signInAnonymously(auth)
 }
 
 export default function Resources() {
@@ -135,14 +141,21 @@ export default function Resources() {
   const uploadPdfToQuestion = async (q: Question, catId: string, subId: string) => {
     if (!isAdmin) return
     try {
+      await ensureSignedIn()
+
       const pick = await DocumentPicker.getDocumentAsync({
         type: "application/pdf",
         multiple: false,
         copyToCacheDirectory: true,
       })
 
-      const asset = (pick as any)?.assets?.[0] ?? (pick as any)
+      const asset: any = (pick as any)?.assets?.[0] ?? (pick as any)
       if ((pick as any)?.canceled || !asset?.uri) return
+
+      if (asset.mimeType !== "application/pdf" && !asset.name?.toLowerCase().endsWith(".pdf")) {
+        Alert.alert("Invalid File", "Please select a PDF file only.")
+        return
+      }
 
       const filename: string = asset.name?.toString() || `attachment-${Date.now()}.pdf`
       const storagePath = `faqs/${catId}/${subId}/${q.id}/${filename}`
@@ -151,10 +164,7 @@ export default function Resources() {
       const resp = await fetch(asset.uri)
       const blob = await resp.blob()
 
-      await uploadBytes(storageRef, blob, {
-        contentType: "application/pdf",
-      })
-
+      await uploadBytes(storageRef, blob, { contentType: "application/pdf" })
       const url = await getDownloadURL(storageRef)
 
       const next: Attachment[] = [
@@ -164,7 +174,7 @@ export default function Resources() {
           label: filename,
           url,
           storagePath,
-          sizeBytes: (asset.size as number) || undefined,
+          sizeBytes: asset.size ?? undefined,
           name: filename,
         },
       ]
@@ -175,9 +185,16 @@ export default function Resources() {
 
       await loadHierarchy()
       Alert.alert("Success", "PDF attached to the question.")
-    } catch (e) {
-      Alert.alert("Upload failed", String(e))
+    } catch (e: any) {
+      console.log("UPLOAD ERROR", e?.code, e?.message, e?.customData, e?.serverResponse);
+      const msg =
+        e?.code === "auth/operation-not-allowed" ? "Anonymous sign-in is disabled in Firebase Auth." :
+        e?.code === "storage/unauthorized" ? "Storage rules blocked the upload." :
+        e?.code === "permission-denied" ? "Firestore rules blocked the update." :
+        `${e?.code ?? "error"}: ${e?.message ?? e}`;
+      Alert.alert("Upload failed", msg);
     }
+    
   }
 
   const renderQuestion =
@@ -328,10 +345,7 @@ export default function Resources() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
+  container: { flex: 1, backgroundColor: "#f8fafc" },
   headerContainer: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 20,
@@ -340,43 +354,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
   },
-  screenTitle: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#0f172a",
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#64748b",
-    fontWeight: "500",
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#64748b",
-    fontWeight: "500",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#94a3b8",
-    fontWeight: "500",
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: 32,
-  },
-  categorySeparator: {
-    height: 8,
-  },
+  screenTitle: { fontSize: 32, fontWeight: "800", color: "#0f172a", marginBottom: 4, letterSpacing: -0.5 },
+  headerSubtitle: { fontSize: 14, color: "#64748b", fontWeight: "500" },
+  centerContent: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
+  loadingText: { marginTop: 12, fontSize: 16, color: "#64748b", fontWeight: "500" },
+  emptyText: { fontSize: 16, color: "#94a3b8", fontWeight: "500" },
+  listContent: { paddingHorizontal: 16, paddingVertical: 16, paddingBottom: 32 },
+  categorySeparator: { height: 8 },
   categoryBlock: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
@@ -397,203 +381,56 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: "#f9fafb",
   },
-  categoryTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1e293b",
-    flex: 1,
-  },
-  categoryChevron: {
-    fontSize: 14,
-    color: "#cbd5e1",
-    fontWeight: "600",
-  },
-  subcategorySeparator: {
-    height: 0.5,
-    backgroundColor: "#f1f5f9",
-    marginHorizontal: 16,
-  },
+  categoryTitle: { fontSize: 17, fontWeight: "700", color: "#1e293b", flex: 1 },
+  categoryChevron: { fontSize: 14, color: "#cbd5e1", fontWeight: "600" },
+  subcategorySeparator: { height: 0.5, backgroundColor: "#f1f5f9", marginHorizontal: 16 },
   subHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fafbfc",
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fafbfc",
   },
-  subTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#334155",
-    flex: 1,
-  },
-  subChevron: {
-    fontSize: 12,
-    color: "#cbd5e1",
-    fontWeight: "600",
-  },
-  questionsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  questionSeparator: {
-    height: 8,
-  },
+  subTitle: { fontSize: 15, fontWeight: "700", color: "#334155", flex: 1 },
+  subChevron: { fontSize: 12, color: "#cbd5e1", fontWeight: "600" },
+  questionsContainer: { paddingHorizontal: 16, paddingVertical: 8 },
+  questionSeparator: { height: 8 },
   questionItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: "#f8fafc",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
+    paddingHorizontal: 12, paddingVertical: 12, borderRadius: 10, backgroundColor: "#f8fafc",
+    borderWidth: 1, borderColor: "#e2e8f0", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8,
   },
-  questionContent: {
-    flex: 1,
-  },
-  questionText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1e293b",
-    lineHeight: 20,
-  },
-  questionChevron: {
-    fontSize: 20,
-    color: "#cbd5e1",
-    fontWeight: "300",
-  },
+  questionContent: { flex: 1 },
+  questionText: { fontSize: 14, fontWeight: "600", color: "#1e293b", lineHeight: 20 },
+  questionChevron: { fontSize: 20, color: "#cbd5e1", fontWeight: "300" },
   pdfButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    backgroundColor: "#dbeafe",
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
+    paddingVertical: 6, paddingHorizontal: 8, backgroundColor: "#dbeafe",
+    borderRadius: 6, borderWidth: 1, borderColor: "#bfdbfe",
   },
-  pdfButtonText: {
-    color: "#1e40af",
-    fontWeight: "700",
-    fontSize: 11,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalCard: {
-    width: "100%",
-    backgroundColor: "#ffffff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "92%",
-  },
+  pdfButtonText: { color: "#1e40af", fontWeight: "700", fontSize: 11 },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.5)", justifyContent: "flex-end" },
+  modalCard: { width: "100%", backgroundColor: "#ffffff", borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "92%" },
   modalHeader: {
-    backgroundColor: "#3b82f6",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    backgroundColor: "#3b82f6", paddingHorizontal: 20, paddingVertical: 14,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#ffffff",
-  },
-  modalCloseButton: {
-    padding: 8,
-  },
-  modalCloseText: {
-    fontSize: 24,
-    color: "#ffffff",
-    opacity: 0.9,
-    lineHeight: 24,
-  },
-  modalContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-  },
-  modalSection: {
-    marginBottom: 12,
-  },
-  modalLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#64748b",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  modalQuestion: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1e293b",
-    lineHeight: 22,
-  },
-  modalAnswer: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#475569",
-    fontWeight: "500",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#e2e8f0",
-    marginVertical: 12,
-  },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: "#ffffff" },
+  modalCloseButton: { padding: 8 },
+  modalCloseText: { fontSize: 24, color: "#ffffff", opacity: 0.9, lineHeight: 24 },
+  modalContent: { paddingHorizontal: 20, paddingVertical: 18 },
+  modalSection: { marginBottom: 12 },
+  modalLabel: { fontSize: 11, fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 },
+  modalQuestion: { fontSize: 15, fontWeight: "700", color: "#1e293b", lineHeight: 22 },
+  modalAnswer: { fontSize: 15, lineHeight: 22, color: "#475569", fontWeight: "500" },
+  divider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 12 },
   attachmentButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: "#f0f9ff",
-    borderRadius: 8,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    paddingVertical: 10, paddingHorizontal: 12, backgroundColor: "#f0f9ff",
+    borderRadius: 8, marginTop: 8, borderWidth: 1, borderColor: "#bfdbfe", flexDirection: "row", alignItems: "center", gap: 10,
   },
-  attachmentIcon: {
-    fontSize: 16,
-  },
-  attachmentLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1e40af",
-    flex: 1,
-  },
+  attachmentIcon: { fontSize: 16 },
+  attachmentLabel: { fontSize: 14, fontWeight: "600", color: "#1e40af", flex: 1 },
   modalActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: "#f8fafc",
-    borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
+    flexDirection: "row", justifyContent: "flex-end", gap: 10, paddingHorizontal: 20,
+    paddingVertical: 14, backgroundColor: "#f8fafc", borderTopWidth: 1, borderTopColor: "#e2e8f0",
   },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  cancelButtonText: {
-    color: "#475569",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  doneButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#10B981",
-    borderRadius: 8,
-  },
-  doneButtonText: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 14,
-  },
+  cancelButton: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  cancelButtonText: { color: "#475569", fontWeight: "700", fontSize: 14 },
+  doneButton: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: "#10B981", borderRadius: 8 },
+  doneButtonText: { color: "#ffffff", fontWeight: "700", fontSize: 14 },
 })

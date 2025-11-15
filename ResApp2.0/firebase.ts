@@ -25,8 +25,6 @@ const firebaseConfig = {
   appId: extra.firebaseAppId,
 };
 
-console.log("Firebase config:", firebaseConfig); // ✅ add this line
-
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
