@@ -133,11 +133,11 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {isAdmin && (
+      {/* {isAdmin && (
         <View style={styles.adminSection}>
           <RoomSeeder />
         </View>
-      )}
+      )} */}
 
       <View style={styles.bottomSection}>
         <TouchableOpacity

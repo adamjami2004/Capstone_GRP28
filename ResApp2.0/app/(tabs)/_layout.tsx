@@ -142,6 +142,13 @@ export default function TabLayout() {
             href: null, 
           }}
         />
+        <Tabs.Screen
+          name="timeOff"
+          options={{
+            href: null, 
+          }}
+        />
+        
         
       </Tabs>
     </>
