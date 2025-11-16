@@ -156,11 +156,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="SidebarAnim"
+          name="timeOff"
           options={{
             href: null, 
           }}
         />
+        
         
       </Tabs>
     </>
