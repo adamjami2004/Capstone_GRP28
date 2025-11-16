@@ -8,6 +8,7 @@ import Modal from "react-native-modal"
 import { getAuth } from "firebase/auth"
 import { doc, getDoc, updateDoc, collection, getDocs, query, where } from "firebase/firestore"
 import { db } from "@/firebase"
+import Sidebar from "@/app/(tabs)/SidebarAnim"
 
 export function CustomHeader() {
   const router = useRouter()
@@ -17,6 +18,7 @@ export function CustomHeader() {
   const [modalMessage, setModalMessage] = useState("")
   const [modalMode, setModalMode] = useState<"TL" | "Admin" | null>(null)
   const [pulseAnim] = useState(new Animated.Value(1))
+  const [sidebarVisible, setSidebarVisible] = useState(false)
 
   const auth = getAuth()
   const user = auth.currentUser
@@ -142,7 +144,7 @@ export function CustomHeader() {
   return (
     <>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton} onPress={() => router.push("/Sidebar")}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => setSidebarVisible(true)}>
           <IconSymbol size={24} name="line.horizontal.3" color="#000" />
         </TouchableOpacity>
 
@@ -234,8 +236,15 @@ export function CustomHeader() {
             </TouchableOpacity>
           </View>
         </View>
+        
       </Modal>
+      <Sidebar
+        visible={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+      />
+      
     </>
+    
   )
 }
 
