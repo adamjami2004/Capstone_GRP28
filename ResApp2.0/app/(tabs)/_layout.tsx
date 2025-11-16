@@ -54,6 +54,22 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen
+          name="index"
+          options={{
+            title: "Home",
+            tabBarIcon: ({ color, focused }) => (
+              <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+                <IconSymbol 
+                  size={22} 
+                  name="house.fill" 
+                  color={focused ? "#2563eb" : color} 
+                />
+              </View>
+            ),
+          }}
+        />
+
+        <Tabs.Screen
           name="feed"
           options={{
             title: "Feed",
@@ -69,21 +85,7 @@ export default function TabLayout() {
           }}
         />
 
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: "Home",
-            tabBarIcon: ({ color, focused }) => (
-              <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-                <IconSymbol 
-                  size={22} 
-                  name="house.fill" 
-                  color={focused ? "#2563eb" : color} 
-                />
-              </View>
-            ),
-          }}
-        />
+        
         
         <Tabs.Screen
           name="duty"
@@ -104,9 +106,20 @@ export default function TabLayout() {
         <Tabs.Screen
           name="calendar"
           options={{
-            href: null, 
+            title: "Calendar",
+            tabBarIcon: ({ color, focused }) => (
+              <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+                <IconSymbol 
+                  size={22} 
+                  name="calendar" 
+                  color={focused ? "#2563eb" : color} 
+                />
+              </View>
+            ),
           }}
         />
+
+        
 
         <Tabs.Screen
           name="status"
