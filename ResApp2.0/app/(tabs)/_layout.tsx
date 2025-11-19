@@ -169,6 +169,12 @@ export default function TabLayout() {
             href: null, 
           }}
         />
+        <Tabs.Screen
+          name="PocketDuty"
+          options={{
+            href: null, 
+          }}
+        />
         
         
       </Tabs>

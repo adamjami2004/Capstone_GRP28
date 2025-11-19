@@ -6,6 +6,7 @@ export default function Sidebar({ visible, onClose }) {
   const slideAnim = useRef(new Animated.Value(-320)).current
 
   const features = [
+    { id: 7, name: "Duty Pcoket", icon: "gearshape.fill", route: "/PocketDuty"},
     { id: 1, name: "SharePoint", icon: "folder.fill" },
     { id: 2, name: "Room Reservations", icon: "calendar" },
     { id: 3, name: "Events", icon: "star.fill" },
