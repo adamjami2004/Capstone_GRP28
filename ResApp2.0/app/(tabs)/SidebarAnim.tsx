@@ -1,18 +1,20 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Animated } from "react-native"
 import { useEffect, useRef } from "react"
 import { IconSymbol } from "@/components/ui/icon-symbol"
+import { useRouter } from "expo-router";
 
 export default function Sidebar({ visible, onClose }) {
+  const router = useRouter();
   const slideAnim = useRef(new Animated.Value(-320)).current
 
   const features = [
-    { id: 7, name: "Duty Pcoket", icon: "gearshape.fill", route: "/PocketDuty"},
-    { id: 1, name: "SharePoint", icon: "folder.fill" },
-    { id: 2, name: "Room Reservations", icon: "calendar" },
-    { id: 3, name: "Events", icon: "star.fill" },
-    { id: 4, name: "Documents", icon: "doc.fill" },
-    { id: 5, name: "Community", icon: "person.3.fill" },
-    { id: 6, name: "Settings", icon: "gearshape.fill" },
+    { id: 7, name: "Duty Pocket", icon: "gearshape.fill", route: "/PocketDuty"},
+    { id: 1, name: "SharePoint", icon: "folder.fill", route: "/PocketDuty" },
+    { id: 2, name: "Room Reservations", icon: "calendar", route: "/PocketDuty" },
+    { id: 3, name: "Events", icon: "star.fill" , route: "/PocketDuty"},
+    { id: 4, name: "Documents", icon: "doc.fill" , route: "/PocketDuty"},
+    { id: 5, name: "Community", icon: "person.3.fill", route: "/PocketDuty" },
+    { id: 6, name: "Settings", icon: "gearshape.fill" , route: "/PocketDuty"},
   ]
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function Sidebar({ visible, onClose }) {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
             {features.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.row} activeOpacity={0.7}>
+              <TouchableOpacity key={item.id} style={styles.row} activeOpacity={0.7} onPress={() => item.route && router.push(item.route as any)}>
                 <View style={styles.iconBox}>
                   <IconSymbol name={item.icon} size={22} color="#4B5563" />
                 </View>
