@@ -20,6 +20,7 @@ import {
   Shift,
 } from "@/types/shift";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   collection,
   getDocs,
@@ -33,6 +34,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -58,11 +60,13 @@ export default function ShiftsScreen() {
   const [addShiftModalVisible, setAddShiftModalVisible] = useState(false);
   const [newShift, setNewShift] = useState({
     date: "",
-    startTime: "",
-    endTime: "",
-    location: "",
-    description: "",
+    startTime: "20:00",
+    endTime: "07:00",
+    residence: "",
   });
+  const [userResidence, setUserResidence] = useState("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   // Covers state
   const [availableCovers, setAvailableCovers] = useState<CoverRequest[]>([]);
@@ -128,6 +132,8 @@ export default function ShiftsScreen() {
 
       if (!userSnapshot.empty) {
         const userData = userSnapshot.docs[0].data();
+        // Store user residence for filtering
+        setUserResidence(userData.residence || "");
         return userData.role || "Staff";
       }
     } catch (error) {
@@ -200,39 +206,65 @@ export default function ShiftsScreen() {
     };
   };
 
-  const setupApprovalsListener = () => {
+  const setupApprovalsListener = async () => {
     const approvalsQuery = query(
       collection(db, "CoverRequests"),
       where("status", "==", "pending_approval"),
       orderBy("takenAt", "desc")
     );
 
-    return onSnapshot(approvalsQuery, (snapshot) => {
+    return onSnapshot(approvalsQuery, async (snapshot) => {
       const requests: CoverRequest[] = [];
-      snapshot.forEach((doc) => {
-        requests.push({ id: doc.id, ...doc.data() } as CoverRequest);
-      });
+      
+      // Filter by residence - only show requests from users in the same residence
+      for (const doc of snapshot.docs) {
+        const requestData = doc.data() as CoverRequest;
+        
+        // Get the requester's residence
+        try {
+          const usersRef = collection(db, "Users");
+          const userQuery = query(usersRef, where("Email", "==", requestData.requestedByEmail));
+          const userSnapshot = await getDocs(userQuery);
+          
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            const requesterResidence = userData.residence || "";
+            
+            // Only include if same residence
+            if (requesterResidence === userResidence) {
+              requests.push({ id: doc.id, ...requestData });
+            }
+          }
+        } catch (error) {
+          console.error("Error checking residence:", error);
+        }
+      }
+      
       setPendingApprovals(requests);
     });
   };
 
   const handleAddShift = async () => {
-    if (!newShift.date || !newShift.startTime || !newShift.endTime || !newShift.location) {
+    if (!newShift.date || !newShift.startTime || !newShift.endTime || !newShift.residence) {
       Alert.alert("Error", "Please fill in all required fields.");
       return;
     }
 
-    const result = await createShift(userEmail, newShift);
+    const result = await createShift(userEmail, {
+      date: newShift.date,
+      startTime: newShift.startTime,
+      endTime: newShift.endTime,
+      location: newShift.residence, // Using residence as location
+    });
 
     if (result.success) {
       Alert.alert("Success", "Shift created successfully!");
       setAddShiftModalVisible(false);
       setNewShift({
         date: "",
-        startTime: "",
-        endTime: "",
-        location: "",
-        description: "",
+        startTime: "20:00",
+        endTime: "07:00",
+        residence: "",
       });
     } else {
       Alert.alert("Error", result.error || "Failed to create shift.");
@@ -793,13 +825,102 @@ export default function ShiftsScreen() {
             <ScrollView style={styles.modalBody}>
               <View style={styles.inputSection}>
                 <Text style={styles.inputLabel}>Date *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#94a3b8"
-                  value={newShift.date}
-                  onChangeText={(text) => setNewShift({ ...newShift, date: text })}
-                />
+                
+                {/* Calendar Date Picker Button */}
+                <TouchableOpacity
+                  style={styles.calendarButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <View style={styles.calendarButtonContent}>
+                    <IconSymbol name="calendar" size={24} color="#3b82f6" />
+                    <View style={styles.calendarTextContainer}>
+                      <Text style={styles.calendarButtonLabel}>
+                        {newShift.date ? formatShiftDate(newShift.date) : "Pick a date from calendar"}
+                      </Text>
+                      {newShift.date && (
+                        <Text style={styles.calendarButtonDate}>{newShift.date}</Text>
+                      )}
+                    </View>
+                  </View>
+                  <IconSymbol name="chevron.right" size={20} color="#3b82f6" />
+                </TouchableOpacity>
+                
+                {/* Date Picker */}
+                {showDatePicker && (Platform.OS === "ios" ? (
+                  <Modal
+                    transparent={true}
+                    animationType="slide"
+                    visible={showDatePicker}
+                    onRequestClose={() => setShowDatePicker(false)}
+                  >
+                    <Pressable
+                      style={styles.datePickerOverlay}
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Pressable style={styles.datePickerContainer} onPress={(e) => e.stopPropagation()}>
+                        <View style={styles.datePickerHeader}>
+                          <Text style={styles.datePickerTitle}>Select Date</Text>
+                          <TouchableOpacity
+                            onPress={() => setShowDatePicker(false)}
+                            style={styles.datePickerCloseButton}
+                          >
+                            <IconSymbol size={24} name="xmark" color="#666" />
+                          </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.iosPickerWrapper}>
+                          <DateTimePicker
+                            value={selectedDate}
+                            mode="date"
+                            display="spinner"
+                            onChange={(event, date) => {
+                              if (date) {
+                                setSelectedDate(date);
+                              }
+                            }}
+                            minimumDate={new Date()}
+                            textColor="#000000"
+                            themeVariant="light"
+                          />
+                        </View>
+                        
+                        <View style={styles.datePickerActions}>
+                          <TouchableOpacity
+                            style={[styles.datePickerButton, styles.datePickerCancelButton]}
+                            onPress={() => setShowDatePicker(false)}
+                          >
+                            <Text style={styles.datePickerCancelText}>Cancel</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.datePickerButton, styles.datePickerConfirmButton]}
+                            onPress={() => {
+                              const dateString = selectedDate.toISOString().split('T')[0];
+                              setNewShift({ ...newShift, date: dateString });
+                              setShowDatePicker(false);
+                            }}
+                          >
+                            <Text style={styles.datePickerConfirmText}>Confirm</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </Pressable>
+                    </Pressable>
+                  </Modal>
+                ) : (
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      setShowDatePicker(false);
+                      if (date) {
+                        setSelectedDate(date);
+                        const dateString = date.toISOString().split('T')[0];
+                        setNewShift({ ...newShift, date: dateString });
+                      }
+                    }}
+                    minimumDate={new Date()}
+                  />
+                ))}
               </View>
 
               <View style={styles.inputRow}>
@@ -807,47 +928,38 @@ export default function ShiftsScreen() {
                   <Text style={styles.inputLabel}>Start Time *</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="08:00"
+                    placeholder="20:00"
                     placeholderTextColor="#94a3b8"
                     value={newShift.startTime}
                     onChangeText={(text) => setNewShift({ ...newShift, startTime: text })}
                   />
+                  <Text style={styles.helperText}>Default: 8pm</Text>
                 </View>
                 <View style={[styles.inputSection, { flex: 1 }]}>
                   <Text style={styles.inputLabel}>End Time *</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="16:00"
+                    placeholder="07:00"
                     placeholderTextColor="#94a3b8"
                     value={newShift.endTime}
                     onChangeText={(text) => setNewShift({ ...newShift, endTime: text })}
                   />
+                  <Text style={styles.helperText}>Default: 7am</Text>
                 </View>
               </View>
 
               <View style={styles.inputSection}>
-                <Text style={styles.inputLabel}>Location *</Text>
+                <Text style={styles.inputLabel}>Residence *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Main Building"
+                  placeholder="Enter your residence"
                   placeholderTextColor="#94a3b8"
-                  value={newShift.location}
-                  onChangeText={(text) => setNewShift({ ...newShift, location: text })}
+                  value={newShift.residence}
+                  onChangeText={(text) => setNewShift({ ...newShift, residence: text })}
                 />
-              </View>
-
-              <View style={styles.inputSection}>
-                <Text style={styles.inputLabel}>Description (Optional)</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Add notes about this shift..."
-                  placeholderTextColor="#94a3b8"
-                  value={newShift.description}
-                  onChangeText={(text) => setNewShift({ ...newShift, description: text })}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
+                {userResidence && (
+                  <Text style={styles.helperText}>Your residence: {userResidence}</Text>
+                )}
               </View>
             </ScrollView>
 
@@ -1450,5 +1562,139 @@ const styles = StyleSheet.create({
   },
   monthOptionText: { fontSize: 15, fontWeight: "500", color: "#000" },
   monthOptionTextSelected: { color: "#3b82f6", fontWeight: "600" },
+  
+  // Date picker
+  datePickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#f0f9ff",
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#3b82f6",
+  },
+  datePickerText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#3b82f6",
+  },
+  helperText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+  },
+  
+  // Calendar Button
+  calendarButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#3b82f6",
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  calendarButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  calendarTextContainer: {
+    flex: 1,
+  },
+  calendarButtonLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#3b82f6",
+    marginBottom: 2,
+  },
+  calendarButtonDate: {
+    fontSize: 13,
+    color: "#666",
+  },
+  
+  // Date Picker Modal
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  datePickerContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    width: "100%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  datePickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  datePickerTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#000",
+  },
+  datePickerCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iosPickerWrapper: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    overflow: "hidden",
+    marginVertical: 10,
+  },
+  datePickerActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 20,
+  },
+  datePickerButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  datePickerCancelButton: {
+    backgroundColor: "#f3f4f6",
+  },
+  datePickerConfirmButton: {
+    backgroundColor: "#3b82f6",
+  },
+  datePickerCancelText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#666",
+  },
+  datePickerConfirmText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#fff",
+  },
 });
 

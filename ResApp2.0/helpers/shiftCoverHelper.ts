@@ -61,7 +61,8 @@ export async function createShift(
       startTime: shiftData.startTime,
       endTime: shiftData.endTime,
       location: shiftData.location,
-      description: shiftData.description,
+      // Only add description if it exists (not undefined)
+      ...(shiftData.description && { description: shiftData.description }),
       status: "scheduled",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
