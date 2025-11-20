@@ -175,6 +175,12 @@ export default function TabLayout() {
             href: null, 
           }}
         />
+        <Tabs.Screen
+          name="SidebarAnim"
+          options={{
+            href: null, 
+          }}
+        />
         
         
       </Tabs>
