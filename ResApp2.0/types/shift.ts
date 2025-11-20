@@ -112,7 +112,11 @@ export function formatTimeRange(startTime: string, endTime: string): string {
  * Format date for display
  */
 export function formatShiftDate(dateString: string): string {
-  const date = new Date(dateString);
+  // Parse date manually to avoid timezone issues
+  // dateString format: "YYYY-MM-DD"
+  const [year, month, day] = dateString.split('-').map(Number);
+  // Month is 0-indexed in JavaScript Date
+  const date = new Date(year, month - 1, day);
   return date.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",

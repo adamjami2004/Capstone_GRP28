@@ -824,7 +824,16 @@ export default function ShiftsScreen() {
                 {/* Calendar Date Picker Button */}
                 <TouchableOpacity
                   style={styles.calendarButton}
-                  onPress={() => setShowDatePicker(true)}
+                  onPress={() => {
+                    // Initialize selectedDate from newShift.date if it exists
+                    if (newShift.date) {
+                      const [year, month, day] = newShift.date.split('-').map(Number);
+                      setSelectedDate(new Date(year, month - 1, day));
+                    } else {
+                      setSelectedDate(new Date());
+                    }
+                    setShowDatePicker(true);
+                  }}
                 >
                   <View style={styles.calendarButtonContent}>
                     <IconSymbol name="calendar" size={24} color="#3b82f6" />
@@ -871,6 +880,12 @@ export default function ShiftsScreen() {
                             onChange={(event, date) => {
                               if (date) {
                                 setSelectedDate(date);
+                                // Format date in local timezone to avoid timezone issues
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const dateString = `${year}-${month}-${day}`;
+                                setNewShift({ ...newShift, date: dateString });
                               }
                             }}
                             minimumDate={new Date()}
@@ -889,7 +904,11 @@ export default function ShiftsScreen() {
                           <TouchableOpacity
                             style={[styles.datePickerButton, styles.datePickerConfirmButton]}
                             onPress={() => {
-                              const dateString = selectedDate.toISOString().split('T')[0];
+                              // Format date in local timezone to avoid timezone issues
+                              const year = selectedDate.getFullYear();
+                              const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                              const day = String(selectedDate.getDate()).padStart(2, '0');
+                              const dateString = `${year}-${month}-${day}`;
                               setNewShift({ ...newShift, date: dateString });
                               setShowDatePicker(false);
                             }}
@@ -909,7 +928,11 @@ export default function ShiftsScreen() {
                       setShowDatePicker(false);
                       if (date) {
                         setSelectedDate(date);
-                        const dateString = date.toISOString().split('T')[0];
+                        // Format date in local timezone to avoid timezone issues
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const dateString = `${year}-${month}-${day}`;
                         setNewShift({ ...newShift, date: dateString });
                       }
                     }}
