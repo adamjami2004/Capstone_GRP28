@@ -104,9 +104,10 @@ export default function ShiftsScreen() {
 
       setUserEmail(currentUserEmail);
 
-      // Check user role
-      const role = await checkUserRole(currentUserEmail);
+      // Check user role and get residence
+      const { role, residence } = await checkUserRole(currentUserEmail);
       setUserRole(role);
+      setUserResidence(residence);
       const authorized = canApproveCover(role as any);
       setIsAuthorized(authorized);
 
@@ -114,7 +115,7 @@ export default function ShiftsScreen() {
       setupShiftsListener(currentUserEmail, selectedMonth);
       setupCoversListeners(currentUserEmail);
       if (authorized) {
-        setupApprovalsListener();
+        setupApprovalsListener(residence);
       }
     } catch (error) {
       console.error("Error initializing:", error);
@@ -124,7 +125,7 @@ export default function ShiftsScreen() {
     }
   };
 
-  const checkUserRole = async (email: string): Promise<string> => {
+  const checkUserRole = async (email: string): Promise<{ role: string; residence: string }> => {
     try {
       const usersRef = collection(db, "Users");
       const userQuery = query(usersRef, where("Email", "==", email));
@@ -132,14 +133,15 @@ export default function ShiftsScreen() {
 
       if (!userSnapshot.empty) {
         const userData = userSnapshot.docs[0].data();
-        // Store user residence for filtering
-        setUserResidence(userData.residence || "");
-        return userData.role || "Staff";
+        return {
+          role: userData.role || "Staff",
+          residence: userData.residence || ""
+        };
       }
     } catch (error) {
       console.error("Error checking user role:", error);
     }
-    return "Staff";
+    return { role: "Staff", residence: "" };
   };
 
   const setupShiftsListener = (email: string, month: string) => {
@@ -206,7 +208,9 @@ export default function ShiftsScreen() {
     };
   };
 
-  const setupApprovalsListener = async () => {
+  const setupApprovalsListener = async (currentUserResidence: string) => {
+    console.log("Setting up approvals listener for residence:", currentUserResidence);
+    
     const approvalsQuery = query(
       collection(db, "CoverRequests"),
       where("status", "==", "pending_approval"),
@@ -215,6 +219,8 @@ export default function ShiftsScreen() {
 
     return onSnapshot(approvalsQuery, async (snapshot) => {
       const requests: CoverRequest[] = [];
+      
+      console.log(`Found ${snapshot.docs.length} pending approval requests to filter`);
       
       // Filter by residence - only show requests from users in the same residence
       for (const doc of snapshot.docs) {
@@ -230,8 +236,10 @@ export default function ShiftsScreen() {
             const userData = userSnapshot.docs[0].data();
             const requesterResidence = userData.residence || "";
             
-            // Only include if same residence
-            if (requesterResidence === userResidence) {
+            console.log(`Request from ${requestData.requestedByEmail}: residence="${requesterResidence}", TL residence="${currentUserResidence}", match=${requesterResidence === currentUserResidence}`);
+            
+            // Only include if same residence as the TL/Admin
+            if (requesterResidence === currentUserResidence) {
               requests.push({ id: doc.id, ...requestData });
             }
           }
@@ -240,6 +248,7 @@ export default function ShiftsScreen() {
         }
       }
       
+      console.log(`Filtered to ${requests.length} requests for residence: ${currentUserResidence}`);
       setPendingApprovals(requests);
     });
   };
