@@ -1,7 +1,7 @@
 "use client";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { auth } from "@/firebase";
+import { auth, storage } from "@/firebase";
 import {
   createPost,
   deletePost,
@@ -13,11 +13,14 @@ import {
 } from "@/helpers/feedHelper";
 import { Post } from "@/types/feed";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as ImagePicker from "expo-image-picker";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Animated,
+  Image,
   Modal,
   Platform,
   RefreshControl,
@@ -43,6 +46,8 @@ export default function FeedScreen() {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadPosts();
@@ -67,10 +72,65 @@ export default function FeedScreen() {
     setRefreshing(false);
   };
 
+  const pickImage = async () => {
+    try {
+      // Request permission
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert("Permission Required", "Please allow access to your photo library to add images.");
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images" as any,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
+    }
+  };
+
+  const uploadImage = async (imageUri: string): Promise<string | null> => {
+    try {
+      setUploadingImage(true);
+      
+      // Convert image URI to blob
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+
+      // Create unique filename
+      const filename = `posts/${auth.currentUser?.uid}_${Date.now()}.jpg`;
+      const storageRef = ref(storage, filename);
+
+      // Upload to Firebase Storage
+      await uploadBytes(storageRef, blob);
+
+      // Get download URL
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      Alert.alert("Error", "Failed to upload image. Please try again.");
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleCreatePost = () => {
     setTitle("");
     setDescription("");
     setDate(new Date());
+    setSelectedImage(null);
     setShowCreateModal(true);
   };
 
@@ -79,6 +139,7 @@ export default function FeedScreen() {
     setTitle(post.title);
     setDescription(post.description);
     setDate(new Date(post.date));
+    setSelectedImage(post.imageUrl || null);
     setShowEditModal(true);
   };
 
@@ -151,15 +212,27 @@ export default function FeedScreen() {
 
     setSubmitting(true);
     try {
+      let imageUrl: string | undefined = undefined;
+
+      // Upload image if selected
+      if (selectedImage) {
+        const uploadedUrl = await uploadImage(selectedImage);
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+        }
+      }
+
       const result = await createPost({
         title: title.trim(),
         description: description.trim(),
         date: date.toISOString(),
+        imageUrl,
       });
 
       if (result.success) {
         Alert.alert("Success", "Event created successfully!");
         setShowCreateModal(false);
+        setSelectedImage(null);
         loadPosts();
       } else {
         Alert.alert("Error", result.error || "Failed to create event");
@@ -186,15 +259,27 @@ export default function FeedScreen() {
 
     setSubmitting(true);
     try {
+      let imageUrl: string | undefined = selectedImage || undefined;
+
+      // Upload new image if it's a local URI (not a Firebase URL)
+      if (selectedImage && !selectedImage.startsWith("https://firebasestorage")) {
+        const uploadedUrl = await uploadImage(selectedImage);
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+        }
+      }
+
       const result = await updatePost(selectedPost.id, {
         title: title.trim(),
         description: description.trim(),
         date: date.toISOString(),
+        imageUrl,
       });
 
       if (result.success) {
         Alert.alert("Success", "Event updated successfully!");
         setShowEditModal(false);
+        setSelectedImage(null);
         loadPosts();
       } else {
         Alert.alert("Error", result.error || "Failed to update event");
@@ -305,6 +390,15 @@ export default function FeedScreen() {
 
           <Text style={styles.postDescription}>{post.description}</Text>
 
+          {/* Post Image */}
+          {post.imageUrl && (
+            <Image
+              source={{ uri: post.imageUrl }}
+              style={styles.postImage}
+              resizeMode="cover"
+            />
+          )}
+
           {/* Event Date Card */}
           <View style={styles.eventDateCard}>
             <View style={styles.dateIconContainer}>
@@ -400,6 +494,46 @@ export default function FeedScreen() {
                 multiline
                 numberOfLines={4}
               />
+            </View>
+
+            {/* Image Picker */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Event Image (Optional)</Text>
+              {selectedImage ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => setSelectedImage(null)}
+                  >
+                    <IconSymbol name="xmark.circle.fill" size={24} color="#ef4444" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.changeImageButton}
+                    onPress={pickImage}
+                  >
+                    <IconSymbol name="photo" size={16} color="#3b82f6" />
+                    <Text style={styles.changeImageText}>Change Image</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.imagePickerButton}
+                  onPress={pickImage}
+                >
+                  <View style={styles.imagePickerIcon}>
+                    <IconSymbol name="photo" size={24} color="#3b82f6" />
+                  </View>
+                  <Text style={styles.imagePickerText}>Add Event Image</Text>
+                  <Text style={styles.imagePickerSubtext}>
+                    Tap to select from gallery
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Date Picker */}
@@ -989,5 +1123,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#fff",
+  },
+  postImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  imagePickerButton: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 14,
+    padding: 24,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+  },
+  imagePickerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#dbeafe",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  imagePickerText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  imagePickerSubtext: {
+    fontSize: 13,
+    color: "#6b7280",
+  },
+  imagePreviewContainer: {
+    position: "relative",
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  imagePreview: {
+    width: "100%",
+    height: 200,
+    borderRadius: 14,
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  changeImageButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  changeImageText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#3b82f6",
   },
 });

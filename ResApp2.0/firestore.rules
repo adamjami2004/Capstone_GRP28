@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - users can read/write their own data
+    match /Users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Posts collection - authenticated users can read all posts
+    // Only post owners can update/delete their posts
+    match /Posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null 
+                    && (resource.data.userId == request.auth.uid 
+                        || request.resource.data.keys().hasOnly(['likes', 'likeCount']));
+      allow delete: if request.auth != null 
+                    && resource.data.userId == request.auth.uid;
+    }
+    
+    // Duty Shifts collection
+    match /dutyShifts/{shiftId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Duty Swaps collection
+    match /dutySwaps/{swapId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Todo collection
+    match /todos/{todoId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Reservations collection
+    match /Reservations/{reservationId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Time Off Requests collection
+    match /timeOffRequests/{requestId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

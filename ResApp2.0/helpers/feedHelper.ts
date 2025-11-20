@@ -36,7 +36,7 @@ export const createPost = async (
     }
 
     // Create post document
-    const postData: Omit<Post, "id"> = {
+    const postData: any = {
       userId: user.uid,
       userName,
       title: data.title,
@@ -47,6 +47,11 @@ export const createPost = async (
       likes: [],
       likeCount: 0,
     };
+
+    // Only add imageUrl if it exists (Firestore doesn't allow undefined)
+    if (data.imageUrl) {
+      postData.imageUrl = data.imageUrl;
+    }
 
     const docRef = await addDoc(collection(db, "Posts"), postData);
 
@@ -150,6 +155,11 @@ export const updatePost = async (
     // Update date if provided
     if (data.date !== undefined) {
       updateData.date = data.date;
+    }
+
+    // Update image URL if provided (only add if not undefined)
+    if (data.imageUrl !== undefined && data.imageUrl !== null) {
+      updateData.imageUrl = data.imageUrl;
     }
 
     const postRef = doc(db, "Posts", postId);
