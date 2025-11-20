@@ -118,6 +118,7 @@ export async function requestCover(
     const userData = userSnapshot.docs[0].data();
     const userId = auth.currentUser?.uid || "";
     const userName = `${userData.firstName} ${userData.lastName}`;
+    const userResidence = userData.residence || "";
 
     // Create cover request
     const coverRequest: Omit<CoverRequest, "id"> = {
@@ -128,6 +129,7 @@ export async function requestCover(
       requestedBy: userName,
       requestedByEmail: userEmail,
       requestedByUserId: userId,
+      requestedByResidence: userResidence,
       reason,
       status: "open",
       createdAt: serverTimestamp(),

@@ -217,36 +217,22 @@ export default function ShiftsScreen() {
       orderBy("takenAt", "desc")
     );
 
-    return onSnapshot(approvalsQuery, async (snapshot) => {
+    return onSnapshot(approvalsQuery, (snapshot) => {
       const requests: CoverRequest[] = [];
       
       console.log(`Found ${snapshot.docs.length} pending approval requests to filter`);
       
       // Filter by residence - only show requests from users in the same residence
-      for (const doc of snapshot.docs) {
-        const requestData = doc.data() as CoverRequest;
+      snapshot.forEach((doc) => {
+        const requestData = { id: doc.id, ...doc.data() } as CoverRequest;
         
-        // Get the requester's residence
-        try {
-          const usersRef = collection(db, "Users");
-          const userQuery = query(usersRef, where("Email", "==", requestData.requestedByEmail));
-          const userSnapshot = await getDocs(userQuery);
-          
-          if (!userSnapshot.empty) {
-            const userData = userSnapshot.docs[0].data();
-            const requesterResidence = userData.residence || "";
-            
-            console.log(`Request from ${requestData.requestedByEmail}: residence="${requesterResidence}", TL residence="${currentUserResidence}", match=${requesterResidence === currentUserResidence}`);
-            
-            // Only include if same residence as the TL/Admin
-            if (requesterResidence === currentUserResidence) {
-              requests.push({ id: doc.id, ...requestData });
-            }
-          }
-        } catch (error) {
-          console.error("Error checking residence:", error);
+        console.log(`Request from ${requestData.requestedByEmail}: residence="${requestData.requestedByResidence}", TL residence="${currentUserResidence}", match=${requestData.requestedByResidence === currentUserResidence}`);
+        
+        // Only include if same residence as the TL/Admin
+        if (requestData.requestedByResidence === currentUserResidence) {
+          requests.push(requestData);
         }
-      }
+      });
       
       console.log(`Filtered to ${requests.length} requests for residence: ${currentUserResidence}`);
       setPendingApprovals(requests);

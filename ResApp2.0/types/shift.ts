@@ -50,6 +50,7 @@ export type CoverRequest = {
   requestedBy: string;
   requestedByEmail: string;
   requestedByUserId: string;
+  requestedByResidence: string;
   // Person who accepted the cover
   takenBy?: string;
   takenByEmail?: string;
