@@ -85,28 +85,11 @@ export default function TabLayout() {
           }}
         />
 
-        
-        
+        {/* Unified Shift Management */}
         <Tabs.Screen
-          name="duty"
+          name="shifts"
           options={{
-            title: "Duty",
-            tabBarIcon: ({ color, focused }) => (
-              <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-                <IconSymbol 
-                  size={22} 
-                  name="building.2.fill" 
-                  color={focused ? "#2563eb" : color} 
-                />
-              </View>
-            ),
-          }}
-        />
-
-        <Tabs.Screen
-          name="calendar"
-          options={{
-            title: "Calendar",
+            title: "Shifts",
             tabBarIcon: ({ color, focused }) => (
               <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
                 <IconSymbol 
@@ -116,6 +99,42 @@ export default function TabLayout() {
                 />
               </View>
             ),
+          }}
+        />
+
+        {/* Hide old tabs */}
+        <Tabs.Screen
+          name="duty"
+          options={{
+            href: null,
+          }}
+        />
+
+        <Tabs.Screen
+          name="calendar"
+          options={{
+            href: null,
+          }}
+        />
+        
+        <Tabs.Screen
+          name="my-shifts"
+          options={{
+            href: null,
+          }}
+        />
+
+        <Tabs.Screen
+          name="covers"
+          options={{
+            href: null,
+          }}
+        />
+
+        <Tabs.Screen
+          name="approvals"
+          options={{
+            href: null,
           }}
         />
 

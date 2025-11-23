@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // DEVELOPMENT MODE: Allow all authenticated users to read/write everything
+    // This fixes all "Missing or insufficient permissions" errors
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
