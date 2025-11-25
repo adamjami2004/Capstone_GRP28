@@ -2,12 +2,25 @@ import { RoomSeeder } from "@/components/admin/RoomSeeder";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
+import {
+  deleteProfilePicture,
+  uploadProfilePicture,
+} from "@/helpers/profileHelper";
 import { logOut } from "@/helpers/signOutHelper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -17,8 +30,10 @@ export default function ProfileScreen() {
     email: "",
     position: "",
     residence: "",
+    profilePictureUrl: "",
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   function getInitials(fullName: string) {
     if (!fullName) return "";
@@ -27,6 +42,68 @@ export default function ProfileScreen() {
       .map(name => name[0].toUpperCase())
       .join("");
   }
+
+  const pickProfilePicture = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please grant camera roll permissions to upload a profile picture"
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setUploadingImage(true);
+        const uploadResult = await uploadProfilePicture(result.assets[0].uri);
+        
+        if (uploadResult.success && uploadResult.url) {
+          setUserInfo((prev) => ({ ...prev, profilePictureUrl: uploadResult.url || "" }));
+          Alert.alert("Success", "Profile picture updated successfully!");
+        } else {
+          Alert.alert("Error", uploadResult.error || "Failed to upload profile picture");
+        }
+        setUploadingImage(false);
+      }
+    } catch (error) {
+      console.error("Error picking profile picture:", error);
+      Alert.alert("Error", "Failed to pick image");
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = () => {
+    Alert.alert(
+      "Remove Profile Picture",
+      "Are you sure you want to remove your profile picture?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setUploadingImage(true);
+            const result = await deleteProfilePicture();
+            if (result.success) {
+              setUserInfo((prev) => ({ ...prev, profilePictureUrl: "" }));
+              Alert.alert("Success", "Profile picture removed successfully!");
+            } else {
+              Alert.alert("Error", result.error || "Failed to remove profile picture");
+            }
+            setUploadingImage(false);
+          },
+        },
+      ]
+    );
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -79,6 +156,7 @@ export default function ProfileScreen() {
             email: data.email || "",
             position: data.role || "",
             residence: data.residence || "",
+            profilePictureUrl: data.profilePicture || data.profilePictureUrl || "",
           });
           setIsAdmin(data.role === "Admin" || data.role === "Super Admin");
         }
@@ -101,11 +179,33 @@ export default function ProfileScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.headerSection}>
         <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(userInfo.fullName)}</Text>
-          </View>
+          <TouchableOpacity onPress={pickProfilePicture} disabled={uploadingImage}>
+            <View style={styles.avatar}>
+              {uploadingImage ? (
+                <ActivityIndicator size="large" color="#fff" />
+              ) : userInfo.profilePictureUrl ? (
+                <Image
+                  source={{ uri: userInfo.profilePictureUrl }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={styles.avatarText}>{getInitials(userInfo.fullName)}</Text>
+              )}
+            </View>
+            <View style={styles.editBadge}>
+              <IconSymbol name="camera.fill" size={14} color="#fff" />
+            </View>
+          </TouchableOpacity>
           <View style={styles.statusBadge} />
         </View>
+        {userInfo.profilePictureUrl && !uploadingImage && (
+          <TouchableOpacity
+            style={styles.removePhotoButton}
+            onPress={handleRemoveProfilePicture}
+          >
+            <Text style={styles.removePhotoText}>Remove Photo</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
           {userInfo.fullName}
         </Text>
@@ -189,10 +289,41 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
   avatarText: {
     fontSize: 32,
     fontWeight: "700",
     color: "#fff"
+  },
+  editBadge: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2.5,
+    borderColor: "#fff",
+  },
+  removePhotoButton: {
+    marginTop: 8,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#fee2e2",
+    borderRadius: 8,
+  },
+  removePhotoText: {
+    fontSize: 12,
+    color: "#ef4444",
+    fontWeight: "600",
   },
   statusBadge: {
     position: "absolute",

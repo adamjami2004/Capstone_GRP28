@@ -10,14 +10,17 @@ import {
   formatRelativeTime,
   toggleLike,
   updatePost,
+  uploadPostImage,
 } from "@/helpers/feedHelper";
 import { Post } from "@/types/feed";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Animated,
+  Image,
   Modal,
   Platform,
   RefreshControl,
@@ -43,6 +46,8 @@ export default function FeedScreen() {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadPosts();
@@ -71,6 +76,7 @@ export default function FeedScreen() {
     setTitle("");
     setDescription("");
     setDate(new Date());
+    setSelectedImage(null);
     setShowCreateModal(true);
   };
 
@@ -79,7 +85,41 @@ export default function FeedScreen() {
     setTitle(post.title);
     setDescription(post.description);
     setDate(new Date(post.date));
+    setSelectedImage(post.imageUrl || null);
     setShowEditModal(true);
+  };
+
+  const pickImage = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please grant camera roll permissions to upload images"
+        );
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
   };
 
   const handleDeletePost = (post: Post) => {
@@ -150,25 +190,42 @@ export default function FeedScreen() {
     }
 
     setSubmitting(true);
+    setUploadingImage(true);
     try {
+      let imageUrl: string | undefined = undefined;
+
+      // First create the post to get the post ID
       const result = await createPost({
         title: title.trim(),
         description: description.trim(),
         date: date.toISOString(),
       });
 
-      if (result.success) {
-        Alert.alert("Success", "Event created successfully!");
-        setShowCreateModal(false);
-        loadPosts();
-      } else {
+      if (!result.success) {
         Alert.alert("Error", result.error || "Failed to create event");
+        return;
       }
+
+      // If there's an image, upload it and update the post
+      if (selectedImage && result.postId) {
+        const uploadResult = await uploadPostImage(selectedImage, result.postId);
+        if (uploadResult.success && uploadResult.url) {
+          imageUrl = uploadResult.url;
+          // Update the post with the image URL
+          await updatePost(result.postId, { imageUrl });
+        }
+      }
+
+      Alert.alert("Success", "Event created successfully!");
+      setShowCreateModal(false);
+      setSelectedImage(null);
+      loadPosts();
     } catch (error) {
       console.error("Error creating post:", error);
       Alert.alert("Error", "An unexpected error occurred");
     } finally {
       setSubmitting(false);
+      setUploadingImage(false);
     }
   };
 
@@ -185,16 +242,29 @@ export default function FeedScreen() {
     }
 
     setSubmitting(true);
+    setUploadingImage(true);
     try {
+      let imageUrl: string | undefined = selectedImage || undefined;
+
+      // If there's a new image (local URI), upload it
+      if (selectedImage && !selectedImage.startsWith("http")) {
+        const uploadResult = await uploadPostImage(selectedImage, selectedPost.id);
+        if (uploadResult.success && uploadResult.url) {
+          imageUrl = uploadResult.url;
+        }
+      }
+
       const result = await updatePost(selectedPost.id, {
         title: title.trim(),
         description: description.trim(),
         date: date.toISOString(),
+        imageUrl,
       });
 
       if (result.success) {
         Alert.alert("Success", "Event updated successfully!");
         setShowEditModal(false);
+        setSelectedImage(null);
         loadPosts();
       } else {
         Alert.alert("Error", result.error || "Failed to update event");
@@ -204,6 +274,7 @@ export default function FeedScreen() {
       Alert.alert("Error", "An unexpected error occurred");
     } finally {
       setSubmitting(false);
+      setUploadingImage(false);
     }
   };
 
@@ -235,7 +306,14 @@ export default function FeedScreen() {
           <View style={styles.postUserInfo}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
-                <IconSymbol name="person.fill" size={20} color="#fff" />
+                {post.userProfilePicture ? (
+                  <Image
+                    source={{ uri: post.userProfilePicture }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <IconSymbol name="person.fill" size={20} color="#fff" />
+                )}
               </View>
               <View style={styles.activeIndicator} />
             </View>
@@ -304,6 +382,17 @@ export default function FeedScreen() {
           </View>
 
           <Text style={styles.postDescription}>{post.description}</Text>
+
+          {/* Post Image */}
+          {post.imageUrl && (
+            <View style={styles.postImageContainer}>
+              <Image
+                source={{ uri: post.imageUrl }}
+                style={styles.postImage}
+                resizeMode="cover"
+              />
+            </View>
+          )}
 
           {/* Event Date Card */}
           <View style={styles.eventDateCard}>
@@ -444,6 +533,42 @@ export default function FeedScreen() {
               )}
             </View>
 
+            {/* Image Picker */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Event Image (Optional)</Text>
+              {selectedImage ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={removeImage}
+                  >
+                    <IconSymbol name="xmark.circle.fill" size={24} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.imagePickerButton}
+                  onPress={pickImage}
+                >
+                  <View style={styles.imagePickerIcon}>
+                    <IconSymbol name="photo" size={24} color="#3b82f6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.imagePickerText}>Add Event Image</Text>
+                    <Text style={styles.imagePickerSubtext}>
+                      Choose from your photo library
+                    </Text>
+                  </View>
+                  <IconSymbol name="chevron.right" size={16} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
+
             {/* Submit Button */}
             <TouchableOpacity
               style={[
@@ -502,12 +627,6 @@ export default function FeedScreen() {
               {posts.length} {posts.length === 1 ? "event" : "events"} shared
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={handleCreatePost}
-          >
-            <IconSymbol name="plus" size={18} color="#fff" />
-          </TouchableOpacity>
         </View>
 
         {/* Posts Feed */}
@@ -586,19 +705,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6b7280",
     marginTop: 2,
-  },
-  createButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#3b82f6",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   emptyContainer: {
     alignItems: "center",
@@ -686,6 +792,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#3b82f6",
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   activeIndicator: {
     position: "absolute",
@@ -989,5 +1101,67 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#fff",
+  },
+  postImageContainer: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#f3f4f6",
+  },
+  postImage: {
+    width: "100%",
+    height: 200,
+  },
+  imagePickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+  },
+  imagePickerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#dbeafe",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imagePickerText: {
+    fontSize: 15,
+    color: "#111827",
+    fontWeight: "600",
+  },
+  imagePickerSubtext: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  imagePreviewContainer: {
+    position: "relative",
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "#f3f4f6",
+  },
+  imagePreview: {
+    width: "100%",
+    height: 200,
+    borderRadius: 14,
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });
