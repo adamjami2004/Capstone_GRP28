@@ -1,4 +1,4 @@
-import { auth, db } from "@/firebase";
+import { auth, db, storage } from "@/firebase";
 import { CreatePostData, Post, UpdatePostData } from "@/types/feed";
 import {
   addDoc,
@@ -11,6 +11,71 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
+
+/**
+ * Upload image to Firebase Storage
+ */
+export const uploadPostImage = async (
+  uri: string,
+  postId: string
+): Promise<{ success: boolean; url?: string; error?: string }> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Fetch the image as a blob
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    // Create a unique filename with timestamp
+    const timestamp = Date.now();
+    const filename = `posts/${user.uid}/${postId}_${timestamp}.jpg`;
+    const storageRef = ref(storage, filename);
+
+    // Upload the blob
+    await uploadBytes(storageRef, blob);
+
+    // Get the download URL
+    const downloadURL = await getDownloadURL(storageRef);
+
+    return { success: true, url: downloadURL };
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to upload image",
+    };
+  }
+};
+
+/**
+ * Delete image from Firebase Storage
+ */
+export const deletePostImage = async (
+  imageUrl: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    if (!imageUrl) return { success: true };
+
+    // Extract the path from the URL
+    const imageRef = ref(storage, imageUrl);
+    await deleteObject(imageRef);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    // Don't fail the operation if image deletion fails
+    return { success: true };
+  }
+};
 
 /**
  * Create a new post
@@ -24,21 +89,24 @@ export const createPost = async (
       return { success: false, error: "User not authenticated" };
     }
 
-    // Get user's name from Users collection
+    // Get user's name and profile picture from Users collection
     const usersRef = collection(db, "Users");
     const userQuery = query(usersRef, where("uid", "==", user.uid));
     const userSnapshot = await getDocs(userQuery);
 
     let userName = "Anonymous";
+    let userProfilePicture = "";
     if (!userSnapshot.empty) {
       const userData = userSnapshot.docs[0].data();
       userName = `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.Email || "Anonymous";
+      userProfilePicture = userData.profilePicture || userData.profilePictureUrl || "";
     }
 
     // Create post document
-    const postData: Omit<Post, "id"> = {
+    const postData: any = {
       userId: user.uid,
       userName,
+      userProfilePicture,
       title: data.title,
       description: data.description,
       date: data.date,
@@ -47,6 +115,11 @@ export const createPost = async (
       likes: [],
       likeCount: 0,
     };
+
+    // Only add imageUrl if it's provided (Firestore doesn't accept undefined)
+    if (data.imageUrl) {
+      postData.imageUrl = data.imageUrl;
+    }
 
     const docRef = await addDoc(collection(db, "Posts"), postData);
 
@@ -152,6 +225,16 @@ export const updatePost = async (
       updateData.date = data.date;
     }
 
+    // Update imageUrl if provided (only add to update if it has a value)
+    if (data.imageUrl !== undefined) {
+      if (data.imageUrl) {
+        updateData.imageUrl = data.imageUrl;
+      } else {
+        // If imageUrl is explicitly null or empty string, remove it
+        updateData.imageUrl = null;
+      }
+    }
+
     const postRef = doc(db, "Posts", postId);
     await updateDoc(postRef, updateData);
 
@@ -177,8 +260,21 @@ export const deletePost = async (
       return { success: false, error: "User not authenticated" };
     }
 
-    // Delete post document
+    // Get post data to check for image
     const postRef = doc(db, "Posts", postId);
+    const postsRef = collection(db, "Posts");
+    const q = query(postsRef, where("__name__", "==", postId));
+    const querySnapshot = await getDocs(q);
+
+    // Delete associated image if it exists
+    if (!querySnapshot.empty) {
+      const postData = querySnapshot.docs[0].data();
+      if (postData.imageUrl) {
+        await deletePostImage(postData.imageUrl);
+      }
+    }
+
+    // Delete post document
     await deleteDoc(postRef);
 
     return { success: true };
