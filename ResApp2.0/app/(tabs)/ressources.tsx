@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { db } from "@/firebase"
+import { collection, getDocs, query, orderBy, type CollectionReference, type DocumentData } from "firebase/firestore"
 import {
   View,
   Text,
@@ -14,19 +16,11 @@ import {
   ActivityIndicator,
   Linking,
 } from "react-native"
-import * as DocumentPicker from "expo-document-picker"
-import { db, storage } from "../../firebase"
-import { collection, getDocs, query, orderBy, doc, updateDoc } from "firebase/firestore"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
-import { getAuth, signInAnonymously } from "firebase/auth"
 
 type Attachment = {
   type: "pdf" | "link"
   label: string
   url: string
-  storagePath?: string
-  sizeBytes?: number
-  name?: string
 }
 
 type Question = {
@@ -50,22 +44,12 @@ type Category = {
   subcategories: Subcategory[]
 }
 
-async function ensureSignedIn() {
-  const auth = getAuth()
-  if (!auth.currentUser) await signInAnonymously(auth)
-}
-
 export default function Resources() {
   const [categories, setCategories] = useState<Category[]>([])
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
   const [expandedSub, setExpandedSub] = useState<string | null>(null)
   const [activeQA, setActiveQA] = useState<Question | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
-
-  useEffect(() => {
-    setIsAdmin(true)
-  }, [])
 
   const toggleCategory = (id: string) => {
     setExpandedCategory((prev) => (prev === id ? null : id))
@@ -89,113 +73,73 @@ export default function Resources() {
     }
   }
 
-  const loadHierarchy = async () => {
-    setLoading(true)
-    try {
-      const catsSnap = await getDocs(query(collection(db, "categories"), orderBy("order", "asc")))
-      const built: Category[] = []
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const categoriesRef = collection(db, "categories") as CollectionReference<DocumentData>
+        const categoriesSnap = await getDocs(query(categoriesRef, orderBy("order", "asc")))
 
-      for (const catDoc of catsSnap.docs) {
-        const catId = catDoc.id
-        const cat = catDoc.data() as any
+        const loadedCategories: Category[] = []
 
-        const subsSnap = await getDocs(
-          query(collection(db, "categories", catId, "subcategories"), orderBy("order", "asc")),
-        )
-        const subs: Subcategory[] = []
+        for (const categoryDoc of categoriesSnap.docs) {
+          const categoryData = categoryDoc.data()
+          const subcategoriesRef = collection(
+            db,
+            "categories",
+            categoryDoc.id,
+            "subcategories",
+          ) as CollectionReference<DocumentData>
+          const subcategoriesSnap = await getDocs(query(subcategoriesRef, orderBy("order", "asc")))
 
-        for (const subDoc of subsSnap.docs) {
-          const subId = subDoc.id
-          const sub = subDoc.data() as any
+          const loadedSubcategories: Subcategory[] = []
 
-          const qSnap = await getDocs(collection(db, "categories", catId, "subcategories", subId, "questions"))
-          const questions: Question[] = qSnap.docs.map((qd) => {
-            const d = qd.data() as any
-            const attachments: Attachment[] = Array.isArray(d.attachments) ? d.attachments.filter(Boolean) : []
-            return {
-              id: qd.id,
-              question: d.question ?? "",
-              answer: d.answer ?? "",
-              attachments,
-            }
+          for (const subcategoryDoc of subcategoriesSnap.docs) {
+            const subcategoryData = subcategoryDoc.data()
+            const questionsRef = collection(
+              db,
+              "categories",
+              categoryDoc.id,
+              "subcategories",
+              subcategoryDoc.id,
+              "questions",
+            ) as CollectionReference<DocumentData>
+            const questionsSnap = await getDocs(questionsRef)
+
+            const loadedQuestions: Question[] = questionsSnap.docs.map((qDoc) => ({
+              id: qDoc.id,
+              question: qDoc.data().question || "",
+              answer: qDoc.data().answer || "",
+              attachments: qDoc.data().attachments || [],
+            }))
+
+            loadedSubcategories.push({
+              id: subcategoryDoc.id,
+              title: subcategoryData.title || "",
+              order: subcategoryData.order,
+              questions: loadedQuestions,
+            })
+          }
+
+          loadedCategories.push({
+            id: categoryDoc.id,
+            title: categoryData.title || "",
+            order: categoryData.order,
+            subcategories: loadedSubcategories,
           })
-
-          subs.push({ id: subId, title: sub.title, order: sub.order ?? 0, questions })
         }
 
-        built.push({ id: catId, title: cat.title, order: cat.order ?? 0, subcategories: subs })
+        setCategories(loadedCategories)
+      } catch (error) {
+        console.error("Error fetching categories:", error)
+        Alert.alert("Error", "Failed to load resources. Please try again.")
+      } finally {
+        setLoading(false)
       }
-
-      setCategories(built)
-    } catch (e) {
-      Alert.alert("Load failed", String(e))
-    } finally {
-      setLoading(false)
     }
-  }
 
-  useEffect(() => {
-    loadHierarchy()
+    fetchData()
   }, [])
-
-  const uploadPdfToQuestion = async (q: Question, catId: string, subId: string) => {
-    if (!isAdmin) return
-    try {
-      await ensureSignedIn()
-
-      const pick = await DocumentPicker.getDocumentAsync({
-        type: "application/pdf",
-        multiple: false,
-        copyToCacheDirectory: true,
-      })
-
-      const asset: any = (pick as any)?.assets?.[0] ?? (pick as any)
-      if ((pick as any)?.canceled || !asset?.uri) return
-
-      if (asset.mimeType !== "application/pdf" && !asset.name?.toLowerCase().endsWith(".pdf")) {
-        Alert.alert("Invalid File", "Please select a PDF file only.")
-        return
-      }
-
-      const filename: string = asset.name?.toString() || `attachment-${Date.now()}.pdf`
-      const storagePath = `faqs/${catId}/${subId}/${q.id}/${filename}`
-      const storageRef = ref(storage, storagePath)
-
-      const resp = await fetch(asset.uri)
-      const blob = await resp.blob()
-
-      await uploadBytes(storageRef, blob, { contentType: "application/pdf" })
-      const url = await getDownloadURL(storageRef)
-
-      const next: Attachment[] = [
-        ...(q.attachments ?? []),
-        {
-          type: "pdf",
-          label: filename,
-          url,
-          storagePath,
-          sizeBytes: asset.size ?? undefined,
-          name: filename,
-        },
-      ]
-
-      await updateDoc(doc(db, "categories", catId, "subcategories", subId, "questions", q.id), {
-        attachments: next,
-      })
-
-      await loadHierarchy()
-      Alert.alert("Success", "PDF attached to the question.")
-    } catch (e: any) {
-      console.log("UPLOAD ERROR", e?.code, e?.message, e?.customData, e?.serverResponse);
-      const msg =
-        e?.code === "auth/operation-not-allowed" ? "Anonymous sign-in is disabled in Firebase Auth." :
-        e?.code === "storage/unauthorized" ? "Storage rules blocked the upload." :
-        e?.code === "permission-denied" ? "Firestore rules blocked the update." :
-        `${e?.code ?? "error"}: ${e?.message ?? e}`;
-      Alert.alert("Upload failed", msg);
-    }
-    
-  }
 
   const renderQuestion =
     (catId: string, subId: string) =>
@@ -207,11 +151,6 @@ export default function Resources() {
           </Text>
         </View>
         <Text style={styles.questionChevron}>›</Text>
-        {isAdmin && (
-          <Pressable style={styles.pdfButton} onPress={() => uploadPdfToQuestion(item, catId, subId)}>
-            <Text style={styles.pdfButtonText}>PDF</Text>
-          </Pressable>
-        )}
       </TouchableOpacity>
     )
 
@@ -290,7 +229,7 @@ export default function Resources() {
         />
       )}
 
-      <Modal visible={!!activeQA} transparent animationType="slide" onRequestClose={() => setActiveQA(null)}>
+      <Modal visible={!!activeQA} transparent animationType="fade" onRequestClose={() => setActiveQA(null)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
@@ -303,14 +242,18 @@ export default function Resources() {
             <ScrollView contentContainerStyle={styles.modalContent}>
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>Question</Text>
-                <Text style={styles.modalQuestion}>{activeQA?.question}</Text>
+                <View style={styles.questionBox}>
+                  <Text style={styles.modalQuestion}>{activeQA?.question}</Text>
+                </View>
               </View>
 
               <View style={styles.divider} />
 
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>Answer</Text>
-                <Text style={styles.modalAnswer}>{activeQA?.answer}</Text>
+                <View style={styles.answerBox}>
+                  <Text style={styles.modalAnswer}>{activeQA?.answer}</Text>
+                </View>
               </View>
 
               {activeQA?.attachments?.length ? (
@@ -318,12 +261,24 @@ export default function Resources() {
                   <View style={styles.divider} />
                   <View style={styles.modalSection}>
                     <Text style={styles.modalLabel}>Attachments</Text>
-                    {activeQA.attachments.map((att) => (
-                      <Pressable key={att.url} style={styles.attachmentButton} onPress={() => openAttachment(att.url)}>
-                        <Text style={styles.attachmentIcon}>{att.type === "pdf" ? "📄" : "🔗"}</Text>
-                        <Text style={styles.attachmentLabel}>{att.label}</Text>
-                      </Pressable>
-                    ))}
+                    <View style={styles.attachmentsContainer}>
+                      {activeQA.attachments.map((att) => (
+                        <Pressable
+                          key={att.url}
+                          style={styles.attachmentButton}
+                          onPress={() => openAttachment(att.url)}
+                        >
+                          <View style={styles.attachmentIconContainer}>
+                            <Text style={styles.attachmentIcon}>{att.type === "pdf" ? "📄" : "🔗"}</Text>
+                          </View>
+                          <View style={styles.attachmentContent}>
+                            <Text style={styles.attachmentLabel}>{att.label}</Text>
+                            <Text style={styles.attachmentHint}>Tap to open</Text>
+                          </View>
+                          <Text style={styles.attachmentArrow}>›</Text>
+                        </Pressable>
+                      ))}
+                    </View>
                   </View>
                 </>
               ) : null}
@@ -354,7 +309,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
   },
-  screenTitle: { fontSize: 32, fontWeight: "800", color: "#0f172a", marginBottom: 4, letterSpacing: -0.5 },
+  screenTitle: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#0f172a",
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
   headerSubtitle: { fontSize: 14, color: "#64748b", fontWeight: "500" },
   centerContent: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
   loadingText: { marginTop: 12, fontSize: 16, color: "#64748b", fontWeight: "500" },
@@ -385,51 +346,139 @@ const styles = StyleSheet.create({
   categoryChevron: { fontSize: 14, color: "#cbd5e1", fontWeight: "600" },
   subcategorySeparator: { height: 0.5, backgroundColor: "#f1f5f9", marginHorizontal: 16 },
   subHeader: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fafbfc",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#fafbfc",
   },
   subTitle: { fontSize: 15, fontWeight: "700", color: "#334155", flex: 1 },
   subChevron: { fontSize: 12, color: "#cbd5e1", fontWeight: "600" },
   questionsContainer: { paddingHorizontal: 16, paddingVertical: 8 },
   questionSeparator: { height: 8 },
   questionItem: {
-    paddingHorizontal: 12, paddingVertical: 12, borderRadius: 10, backgroundColor: "#f8fafc",
-    borderWidth: 1, borderColor: "#e2e8f0", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
   },
   questionContent: { flex: 1 },
   questionText: { fontSize: 14, fontWeight: "600", color: "#1e293b", lineHeight: 20 },
   questionChevron: { fontSize: 20, color: "#cbd5e1", fontWeight: "300" },
-  pdfButton: {
-    paddingVertical: 6, paddingHorizontal: 8, backgroundColor: "#dbeafe",
-    borderRadius: 6, borderWidth: 1, borderColor: "#bfdbfe",
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
-  pdfButtonText: { color: "#1e40af", fontWeight: "700", fontSize: 11 },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.5)", justifyContent: "flex-end" },
-  modalCard: { width: "100%", backgroundColor: "#ffffff", borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "92%" },
+  modalCard: {
+    width: "100%",
+    maxWidth: 500,
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    maxHeight: "85%",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
   modalHeader: {
-    backgroundColor: "#3b82f6", paddingHorizontal: 20, paddingVertical: 14,
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    backgroundColor: "#10B981",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: "#ffffff" },
-  modalCloseButton: { padding: 8 },
-  modalCloseText: { fontSize: 24, color: "#ffffff", opacity: 0.9, lineHeight: 24 },
-  modalContent: { paddingHorizontal: 20, paddingVertical: 18 },
-  modalSection: { marginBottom: 12 },
-  modalLabel: { fontSize: 11, fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 },
-  modalQuestion: { fontSize: 15, fontWeight: "700", color: "#1e293b", lineHeight: 22 },
-  modalAnswer: { fontSize: 15, lineHeight: 22, color: "#475569", fontWeight: "500" },
-  divider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 12 },
+  modalTitle: { fontSize: 20, fontWeight: "800", color: "#ffffff", letterSpacing: -0.5 },
+  modalCloseButton: { padding: 8, marginRight: -8 },
+  modalCloseText: { fontSize: 26, color: "#ffffff", opacity: 0.8, lineHeight: 26, fontWeight: "600" },
+  modalContent: { paddingHorizontal: 20, paddingVertical: 20 },
+  modalSection: { marginBottom: 16 },
+  modalLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  questionBox: {
+    backgroundColor: "#f0fdf4",
+    borderLeftWidth: 4,
+    borderLeftColor: "#10B981",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  modalQuestion: { fontSize: 16, fontWeight: "700", color: "#1e293b", lineHeight: 24 },
+  answerBox: {
+    backgroundColor: "#f8fafc",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  modalAnswer: { fontSize: 15, lineHeight: 24, color: "#475569", fontWeight: "500" },
+  divider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 16 },
+  attachmentsContainer: { gap: 10 },
   attachmentButton: {
-    paddingVertical: 10, paddingHorizontal: 12, backgroundColor: "#f0f9ff",
-    borderRadius: 8, marginTop: 8, borderWidth: 1, borderColor: "#bfdbfe", flexDirection: "row", alignItems: "center", gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: "#f0f9ff",
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "#bfdbfe",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  attachmentIcon: { fontSize: 16 },
-  attachmentLabel: { fontSize: 14, fontWeight: "600", color: "#1e40af", flex: 1 },
+  attachmentIconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#e0f2fe",
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  attachmentIcon: { fontSize: 20, lineHeight: 24 },
+  attachmentContent: { flex: 1 },
+  attachmentLabel: { fontSize: 14, fontWeight: "700", color: "#1e40af", marginBottom: 2 },
+  attachmentHint: { fontSize: 12, color: "#64748b", fontWeight: "500" },
+  attachmentArrow: { fontSize: 18, color: "#94a3b8", fontWeight: "400" },
   modalActions: {
-    flexDirection: "row", justifyContent: "flex-end", gap: 10, paddingHorizontal: 20,
-    paddingVertical: 14, backgroundColor: "#f8fafc", borderTopWidth: 1, borderTopColor: "#e2e8f0",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#f8fafc",
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
   },
-  cancelButton: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  cancelButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "#e2e8f0",
+  },
   cancelButtonText: { color: "#475569", fontWeight: "700", fontSize: 14 },
   doneButton: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: "#10B981", borderRadius: 8 },
   doneButtonText: { color: "#ffffff", fontWeight: "700", fontSize: 14 },
