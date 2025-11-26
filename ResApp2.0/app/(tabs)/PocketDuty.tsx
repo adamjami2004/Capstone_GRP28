@@ -8,7 +8,6 @@ export default function DutyPocketScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      
       {/* HEADER */}
       <Text style={styles.header}>Duty Pocket</Text>
       <Text style={styles.subheader}>Contacts and quick campus tools</Text>
@@ -95,20 +94,27 @@ export default function DutyPocketScreen() {
       {/* QR MODALS */}
       <Modal visible={qrRoommateVisible} transparent animationType="fade">
         <View style={styles.modalWrapper}>
-          <TouchableOpacity 
-            style={styles.modalBackdrop} 
-            activeOpacity={1} 
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
             onPress={() => setQrRoommateVisible(false)}
           />
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Roommate Agreement</Text>
-            <View style={styles.qrContainer}>
-              <Image source={require("@/assets/images/icon.png")} style={styles.qrImage} />
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconWrapper}>
+                <IconSymbol name="qrcode" size={24} color="#F59E0B" />
+              </View>
             </View>
-            <TouchableOpacity 
-              style={styles.closeButton}
-              onPress={() => setQrRoommateVisible(false)}
-            >
+            <Text style={styles.modalTitle}>Roommate Agreement</Text>
+            <Text style={styles.modalSubtitle}>Scan this code to access the form</Text>
+
+            <View style={styles.qrContainer}>
+              <View style={styles.qrInnerBorder}>
+                <Image source={require("@/assets/images/icon.png")} style={styles.qrImage} />
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.closeButton} onPress={() => setQrRoommateVisible(false)}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -117,20 +123,23 @@ export default function DutyPocketScreen() {
 
       <Modal visible={qrGuestVisible} transparent animationType="fade">
         <View style={styles.modalWrapper}>
-          <TouchableOpacity 
-            style={styles.modalBackdrop} 
-            activeOpacity={1} 
-            onPress={() => setQrGuestVisible(false)}
-          />
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setQrGuestVisible(false)} />
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Guest Registry</Text>
-            <View style={styles.qrContainer}>
-              <Image source={require("@/assets/images/icon.png")} style={styles.qrImage} />
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconWrapper}>
+                <IconSymbol name="qrcode" size={24} color="#F59E0B" />
+              </View>
             </View>
-            <TouchableOpacity 
-              style={styles.closeButton}
-              onPress={() => setQrGuestVisible(false)}
-            >
+            <Text style={styles.modalTitle}>Guest Registry</Text>
+            <Text style={styles.modalSubtitle}>Scan this code to register your guest</Text>
+
+            <View style={styles.qrContainer}>
+              <View style={styles.qrInnerBorder}>
+                <Image source={require("@/assets/images/icon.png")} style={styles.qrImage} />
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.closeButton} onPress={() => setQrGuestVisible(false)}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -213,6 +222,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
 
   modalBackdrop: {
@@ -221,54 +231,102 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
 
   modalBox: {
-    width: 280,
+    width: "100%",
+    maxWidth: 320,
     backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    padding: 28,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+
+  modalHeader: {
+    marginBottom: 16,
+  },
+
+  modalIconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FFFBEB",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FEF3C7",
   },
 
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 20,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 6,
     color: "#111827",
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
+    textAlign: "center",
+  },
+
+  modalSubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 24,
+    textAlign: "center",
+    lineHeight: 18,
   },
 
   qrContainer: {
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: "#F59E0B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#FEF3C7",
+  },
+
+  qrInnerBorder: {
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    padding: 12,
+    backgroundColor: "#FEFCE8",
+    borderWidth: 2,
+    borderColor: "#FEF3C7",
+    borderStyle: "dashed",
   },
 
   qrImage: {
-    width: 160,
-    height: 160,
+    width: 180,
+    height: 180,
+    borderRadius: 8,
   },
 
   closeButton: {
     backgroundColor: "#3B82F6",
-    paddingVertical: 10,
+    paddingVertical: 14,
     paddingHorizontal: 32,
-    borderRadius: 10,
+    borderRadius: 12,
     width: "100%",
+    shadowColor: "#3B82F6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   closeButtonText: {
-    fontSize: 15,
+    fontSize: 16,
     color: "#FFFFFF",
-    fontWeight: "600",
+    fontWeight: "700",
     textAlign: "center",
+    letterSpacing: 0.3,
   },
 })
