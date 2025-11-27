@@ -89,15 +89,6 @@ Restart Expo completely
 npx expo install
 npx expo doctor
 ``` 
-### Folders:
-
-app/ — All screens (Expo Router)
-
-components/ — Shared components (UI, modals, widgets)
-
-firebase/ — Firebase configuration files
-
-assets/ — Images, icons, fonts
 
 
 # Contributors
