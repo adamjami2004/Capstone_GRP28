@@ -1,51 +1,108 @@
-# ResApp 2.0
+ResLife – uOttawa Residence Life Mobile App
 
-ResApp 2.0 is a React Native application designed to streamline operations and improve accessibility for staff. This version introduces a fully TypeScript-based codebase with a modular structure, making the app more maintainable and scalable.
+A mobile application built for University of Ottawa residences, allowing students and Community Advisors (CAs) to access resources, duty schedules, announcements, and personal profile information.
+Developed as part of the 2025 Capstone Project.
 
----
+## Getting Started
+
+This guide explains how to download, install, configure, and run the app locally using Expo and Firebase.
+
+## Requirements
+
+Before starting, install the following:
+
+- Node.js
+
+Recommended: 18.x or 20.x
+➡ https://nodejs.org
+
+- Expo CLI
+npm install -g expo-cli
+
+- Git
+
+➡ https://git-scm.com/downloads
+
+- Expo Go App (for real device testing)
+
+iOS – App Store
+
+Android – Google Play
+
+## Installation
+1. Clone the repository
+```bash
+git clone https://github.com/adamjami2004/Capstone_GRP28.git
+cd Capstone_GRP28/ResApp2.0
+```
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Create a .env file in the root
+```python
+EXPO_FIREBASE_API_KEY=xxxx
+EXPO_FIREBASE_AUTH_DOMAIN=xxxx
+EXPO_FIREBASE_PROJECT_ID=xxxx
+EXPO_FIREBASE_STORAGE_BUCKET=xxxx
+EXPO_FIREBASE_MESSAGING_SENDER_ID=xxxx
+EXPO_FIREBASE_APP_ID=xxxx
+```
 
 
+4. Restart Expo after editing .env
+```bash
+npx expo start -c
+```
 
----
+▶️ Running the App
+Start the Expo development server
+```bash
+npx expo start
+```
 
-## Project Overview
+### Run on iOS
 
-ResApp 2.0 is built to help staff manage their daily tasks efficiently. Key functionalities include:
+Press i, or scan the QR code in Expo Go
 
-- Duty calendar management
-- To-do lists for tasks
-- Quick access to operational tools
-- Profile and resource management
+### Run on Android
 
-This version reflects a major update prompted by changing requirements from the client, which required us to restructure the project and migrate it to TypeScript for better type safety and maintainability.
+Press a, or scan QR code via Expo Go
 
----
+## Troubleshooting
+- Metro bundler stuck or crashing
+```bash
+npx expo start -c
+```
 
-## Features
+- Firebase errors (“app not initialized”)
 
-- **User Authentication** (Firebase)
-- **Home Dashboard** with quick access tiles
-- **Duty Calendar** integration
-- **To-Do List** management
-- **Profile Management**
-- **Resource Access**
-- **Room reservation**
-- **Custom Themed UI Components**
-- **Sway Integration**
+Ensure .env file exists
 
----
+Keys must use EXPO_FIREBASE_ prefix
 
-## Tech Stack
+Restart Expo completely
 
-- **Frontend:** React Native, TypeScript
-- **Backend Services:** Firebase (Firestore, Auth, Storage)
-- **Testing:** Jest, React Native Testing Library
-- **UI Components:** Custom components with reusable theming
+- Dependency mismatch
+```bash
+npx expo install
+npx expo doctor
+``` 
+### Folders:
 
-## Project Decisions
+app/ — All screens (Expo Router)
 
-- **TypeScript Migration:** Originally built in JavaScript, the project was migrated to TypeScript to improve type safety, reduce runtime errors, and simplify long-term maintenance.
+components/ — Shared components (UI, modals, widgets)
 
-- **Project Restructuring:** Due to updated client requirements, the folder structure and component hierarchy were refactored. Tabs, modals, and shared UI components were modularized for better scalability (V 2.0)
+firebase/ — Firebase configuration files
 
-- **Firebase Mocking:** For testing, Firebase modules are mocked so that UI tests can run without requiring a live backend.
+assets/ — Images, icons, fonts
+
+
+# Contributors
+| Name	             |
+| ------------------ |
+| Adam Jami          |
+| Tachfine Bihya     |
+| Abdelaziz Amine    |
