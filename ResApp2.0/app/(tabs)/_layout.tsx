@@ -85,6 +85,22 @@ export default function TabLayout() {
           }}
         />
 
+        <Tabs.Screen
+          name="announcements"
+          options={{
+            title: "News",
+            tabBarIcon: ({ color, focused }) => (
+              <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+                <IconSymbol 
+                  size={22} 
+                  name="megaphone.fill" 
+                  color={focused ? "#2563eb" : color} 
+                />
+              </View>
+            ),
+          }}
+        />
+
         {/* Unified Shift Management */}
         <Tabs.Screen
           name="shifts"
