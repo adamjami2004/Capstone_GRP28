@@ -3,28 +3,32 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
 import {
-    createTodo,
-    deleteTodo,
-    fetchPersonalTodos,
-    fetchResidenceTodos,
-    formatDueDate,
-    getPriorityColor,
-    toggleTodoCompletion,
-    updateTodo,
+  createPersonalTodo,
+  createTodo,
+  deletePersonalTodo,
+  deleteTodo,
+  fetchPersonalTodos,
+  fetchResidenceTodos,
+  formatDueDate,
+  getPriorityColor,
+  togglePersonalTodoCompletion,
+  toggleTodoCompletion,
+  updatePersonalTodo,
+  updateTodo,
 } from "@/helpers/todoHelper";
 import { TodoItem } from "@/types/todo";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 type TabType = "personal" | "residence";
@@ -55,38 +59,36 @@ export default function TodoListScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const user = auth.currentUser;
       
-      if (!user) {
-        Alert.alert("Authentication Required", "Please log in to view todos.");
-        return;
-      }
-
-      // Fetch user details to get residence
-      const usersRef = collection(db, "Users");
-      const userQuery = query(usersRef, where("uid", "==", user.uid));
-      const userSnapshot = await getDocs(userQuery);
-      
-      let residenceId = "";
-      let residenceName = "";
-      
-      if (!userSnapshot.empty) {
-        const userData = userSnapshot.docs[0].data();
-        residenceId = userData.residence || userData.Residence || "";
-        residenceName = userData.residence || userData.Residence || "Residence";
-      }
-
-      setUserResidence(residenceId);
-      setUserResidenceName(residenceName);
-
-      // Fetch personal todos
-      const personalTodosData = await fetchPersonalTodos(user.uid);
+      // Fetch personal todos from AsyncStorage (no auth required)
+      const personalTodosData = await fetchPersonalTodos();
       setPersonalTodos(personalTodosData);
 
-      // Fetch residence todos if user has a residence
-      if (residenceId) {
-        const residenceTodosData = await fetchResidenceTodos(residenceId);
-        setResidenceTodos(residenceTodosData);
+      // Try to fetch residence todos if user is authenticated
+      const user = auth.currentUser;
+      if (user) {
+        // Fetch user details to get residence
+        const usersRef = collection(db, "Users");
+        const userQuery = query(usersRef, where("uid", "==", user.uid));
+        const userSnapshot = await getDocs(userQuery);
+        
+        let residenceId = "";
+        let residenceName = "";
+        
+        if (!userSnapshot.empty) {
+          const userData = userSnapshot.docs[0].data();
+          residenceId = userData.residence || userData.Residence || "";
+          residenceName = userData.residence || userData.Residence || "Residence";
+        }
+
+        setUserResidence(residenceId);
+        setUserResidenceName(residenceName);
+
+        // Fetch residence todos if user has a residence
+        if (residenceId) {
+          const residenceTodosData = await fetchResidenceTodos(residenceId);
+          setResidenceTodos(residenceTodosData);
+        }
       }
     } catch (error) {
       console.error("Error loading todos:", error);
@@ -122,13 +124,26 @@ export default function TodoListScreen() {
 
     setSubmitting(true);
     try {
-      const result = await createTodo({
-        title,
-        description,
-        priority,
-        dueDate: dueDate || undefined,
-        residenceId: isResidenceTodo && userResidence ? userResidence : undefined,
-      });
+      let result;
+      
+      if (isResidenceTodo && userResidence) {
+        // Create residence todo in Firebase (requires auth)
+        result = await createTodo({
+          title,
+          description,
+          priority,
+          dueDate: dueDate || undefined,
+          residenceId: userResidence,
+        });
+      } else {
+        // Create personal todo in AsyncStorage (no auth required)
+        result = await createPersonalTodo({
+          title,
+          description,
+          priority,
+          dueDate: dueDate || undefined,
+        });
+      }
 
       if (result.success) {
         Alert.alert("Success", "Todo created successfully!");
@@ -155,12 +170,21 @@ export default function TodoListScreen() {
 
     setSubmitting(true);
     try {
-      const result = await updateTodo(selectedTodo.id, {
-        title,
-        description,
-        priority,
-        dueDate: dueDate || undefined,
-      });
+      const isPersonalTodo = selectedTodo.id.startsWith("personal_");
+      
+      const result = isPersonalTodo
+        ? await updatePersonalTodo(selectedTodo.id, {
+            title,
+            description,
+            priority,
+            dueDate: dueDate || undefined,
+          })
+        : await updateTodo(selectedTodo.id, {
+            title,
+            description,
+            priority,
+            dueDate: dueDate || undefined,
+          });
 
       if (result.success) {
         Alert.alert("Success", "Todo updated successfully!");
@@ -179,7 +203,12 @@ export default function TodoListScreen() {
 
   const handleToggleTodo = async (todoId: string) => {
     try {
-      const result = await toggleTodoCompletion(todoId);
+      const isPersonalTodo = todoId.startsWith("personal_");
+      
+      const result = isPersonalTodo
+        ? await togglePersonalTodoCompletion(todoId)
+        : await toggleTodoCompletion(todoId);
+        
       if (result.success) {
         loadData();
       } else {
@@ -202,7 +231,12 @@ export default function TodoListScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const result = await deleteTodo(todoId);
+              const isPersonalTodo = todoId.startsWith("personal_");
+              
+              const result = isPersonalTodo
+                ? await deletePersonalTodo(todoId)
+                : await deleteTodo(todoId);
+                
               if (result.success) {
                 Alert.alert("Success", "Todo deleted successfully!");
                 loadData();
@@ -760,7 +794,7 @@ const styles = StyleSheet.create({
   fabButton: {
     position: "absolute",
     right: 20,
-    bottom: 20,
+    bottom: 110,
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -772,6 +806,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    zIndex: 999,
   },
   modalOverlay: {
     flex: 1,

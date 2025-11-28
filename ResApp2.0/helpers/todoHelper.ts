@@ -1,60 +1,183 @@
 // Todo helper functions for todo-list system
 import { auth, db } from "@/firebase";
 import {
-    CreateTodoData,
-    TodoItem,
-    UpdateTodoData
+  CreateTodoData,
+  TodoItem,
+  UpdateTodoData
 } from "@/types/todo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where
 } from "firebase/firestore";
 
+const PERSONAL_TODOS_KEY = "personal_todos";
+
+// ============================================
+// PERSONAL TODOS - AsyncStorage (Local Storage)
+// ============================================
+
 /**
- * Fetch user's personal todos
+ * Fetch personal todos from AsyncStorage
  */
-export async function fetchPersonalTodos(userId: string): Promise<TodoItem[]> {
+export async function fetchPersonalTodos(): Promise<TodoItem[]> {
   try {
-    const todosRef = collection(db, "Todos");
-    const q = query(
-      todosRef,
-      where("userId", "==", userId),
-      where("residenceId", "==", null)
-    );
+    const todosJson = await AsyncStorage.getItem(PERSONAL_TODOS_KEY);
+    const todos: TodoItem[] = todosJson ? JSON.parse(todosJson) : [];
 
-    const querySnapshot = await getDocs(q);
-    const todos: TodoItem[] = [];
-
-    querySnapshot.forEach((docSnap) => {
-      todos.push({ id: docSnap.id, ...docSnap.data() } as TodoItem);
-    });
-
-    // Sort by creation date (newest first) and completed status
+    // Sort by completion status and creation date
     todos.sort((a, b) => {
       if (a.completed !== b.completed) {
         return a.completed ? 1 : -1; // Incomplete first
       }
-      // If both completed or both incomplete, sort by creation date
-      if (a.createdAt && b.createdAt) {
-        return b.createdAt.toMillis() - a.createdAt.toMillis();
-      }
-      return 0;
+      // Sort by creation date (newest first)
+      return (b.createdAt || 0) - (a.createdAt || 0);
     });
 
     return todos;
   } catch (error) {
     console.error("Error fetching personal todos:", error);
-    throw new Error("Failed to fetch personal todos");
+    return [];
   }
 }
+
+/**
+ * Create a personal todo in AsyncStorage
+ */
+export async function createPersonalTodo(data: {
+  title: string;
+  description?: string;
+  priority?: "low" | "medium" | "high";
+  dueDate?: string;
+}): Promise<{ success: boolean; todoId?: string; error?: string }> {
+  try {
+    if (!data.title || data.title.trim().length === 0) {
+      return { success: false, error: "Title is required" };
+    }
+
+    const todos = await fetchPersonalTodos();
+    
+    const newTodo: TodoItem = {
+      id: `personal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: data.title.trim(),
+      description: data.description?.trim() || "",
+      completed: false,
+      priority: data.priority || "medium",
+      dueDate: data.dueDate || null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      userId: "local",
+      userEmail: "",
+      userName: "Me",
+      residenceId: null,
+    };
+
+    todos.unshift(newTodo);
+    await AsyncStorage.setItem(PERSONAL_TODOS_KEY, JSON.stringify(todos));
+
+    return { success: true, todoId: newTodo.id };
+  } catch (error: any) {
+    console.error("Error creating personal todo:", error);
+    return { success: false, error: error.message || "Failed to create todo" };
+  }
+}
+
+/**
+ * Update a personal todo in AsyncStorage
+ */
+export async function updatePersonalTodo(
+  todoId: string,
+  data: UpdateTodoData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const todos = await fetchPersonalTodos();
+    const todoIndex = todos.findIndex((t) => t.id === todoId);
+
+    if (todoIndex === -1) {
+      return { success: false, error: "Todo not found" };
+    }
+
+    if (data.title !== undefined && data.title.trim().length === 0) {
+      return { success: false, error: "Title cannot be empty" };
+    }
+
+    const updatedTodo = { ...todos[todoIndex] };
+
+    if (data.title !== undefined) updatedTodo.title = data.title.trim();
+    if (data.description !== undefined) updatedTodo.description = data.description.trim();
+    if (data.completed !== undefined) updatedTodo.completed = data.completed;
+    if (data.priority !== undefined) updatedTodo.priority = data.priority;
+    if (data.dueDate !== undefined) updatedTodo.dueDate = data.dueDate;
+    updatedTodo.updatedAt = Date.now();
+
+    todos[todoIndex] = updatedTodo;
+    await AsyncStorage.setItem(PERSONAL_TODOS_KEY, JSON.stringify(todos));
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error updating personal todo:", error);
+    return { success: false, error: error.message || "Failed to update todo" };
+  }
+}
+
+/**
+ * Delete a personal todo from AsyncStorage
+ */
+export async function deletePersonalTodo(
+  todoId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const todos = await fetchPersonalTodos();
+    const filteredTodos = todos.filter((t) => t.id !== todoId);
+
+    if (filteredTodos.length === todos.length) {
+      return { success: false, error: "Todo not found" };
+    }
+
+    await AsyncStorage.setItem(PERSONAL_TODOS_KEY, JSON.stringify(filteredTodos));
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting personal todo:", error);
+    return { success: false, error: error.message || "Failed to delete todo" };
+  }
+}
+
+/**
+ * Toggle personal todo completion in AsyncStorage
+ */
+export async function togglePersonalTodoCompletion(
+  todoId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const todos = await fetchPersonalTodos();
+    const todoIndex = todos.findIndex((t) => t.id === todoId);
+
+    if (todoIndex === -1) {
+      return { success: false, error: "Todo not found" };
+    }
+
+    todos[todoIndex].completed = !todos[todoIndex].completed;
+    todos[todoIndex].updatedAt = Date.now();
+
+    await AsyncStorage.setItem(PERSONAL_TODOS_KEY, JSON.stringify(todos));
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error toggling personal todo:", error);
+    return { success: false, error: error.message || "Failed to toggle todo" };
+  }
+}
+
+// ============================================
+// RESIDENCE TODOS - Firebase (Shared Storage)
+// ============================================
 
 /**
  * Fetch todos for a specific residence

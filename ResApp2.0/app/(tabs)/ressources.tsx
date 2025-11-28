@@ -1,124 +1,131 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { db } from "@/firebase"
-import { collection, getDocs, query, orderBy, type CollectionReference, type DocumentData } from "firebase/firestore"
+import { ThemedView } from "@/components/themed-view";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { db } from "@/firebase";
 import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  Pressable,
-  ScrollView,
-  Alert,
+  collection,
+  getDocs,
+  orderBy,
+  query,
+  type CollectionReference,
+  type DocumentData,
+} from "firebase/firestore";
+import { useEffect, useState } from "react";
+import {
   ActivityIndicator,
+  Alert,
   Linking,
-} from "react-native"
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 
 type Attachment = {
-  type: "pdf" | "link"
-  label: string
-  url: string
-}
+  type: "pdf" | "link";
+  label: string;
+  url: string;
+};
 
 type Question = {
-  id: string
-  question: string
-  answer: string
-  attachments?: Attachment[]
-}
+  id: string;
+  question: string;
+  answer: string;
+  attachments?: Attachment[];
+};
 
 type Subcategory = {
-  id: string
-  title: string
-  order?: number
-  questions: Question[]
-}
+  id: string;
+  title: string;
+  order?: number;
+  questions: Question[];
+};
 
 type Category = {
-  id: string
-  title: string
-  order?: number
-  subcategories: Subcategory[]
-}
+  id: string;
+  title: string;
+  order?: number;
+  subcategories: Subcategory[];
+};
 
 export default function Resources() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
-  const [expandedSub, setExpandedSub] = useState<string | null>(null)
-  const [activeQA, setActiveQA] = useState<Question | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [expandedSub, setExpandedSub] = useState<string | null>(null);
+  const [activeQA, setActiveQA] = useState<Question | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const toggleCategory = (id: string) => {
-    setExpandedCategory((prev) => (prev === id ? null : id))
-    setExpandedSub(null)
-  }
+    setExpandedCategory((prev) => (prev === id ? null : id));
+    setExpandedSub(null);
+  };
 
   const toggleSub = (id: string) => {
-    setExpandedSub((prev) => (prev === id ? null : id))
-  }
+    setExpandedSub((prev) => (prev === id ? null : id));
+  };
 
   const openAttachment = async (url: string) => {
     try {
-      const supported = await Linking.canOpenURL(url)
+      const supported = await Linking.canOpenURL(url);
       if (!supported) {
-        Alert.alert("Unable to open", "This link cannot be opened on your device.")
-        return
+        Alert.alert("Unable to open", "This link cannot be opened on your device.");
+        return;
       }
-      await Linking.openURL(url)
+      await Linking.openURL(url);
     } catch (e) {
-      Alert.alert("Error", String(e))
+      Alert.alert("Error", String(e));
     }
-  }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true)
-        const categoriesRef = collection(db, "categories") as CollectionReference<DocumentData>
-        const categoriesSnap = await getDocs(query(categoriesRef, orderBy("order", "asc")))
+        setLoading(true);
+        const categoriesRef = collection(db, "categories") as CollectionReference<DocumentData>;
+        const categoriesSnap = await getDocs(query(categoriesRef, orderBy("order", "asc")));
 
-        const loadedCategories: Category[] = []
+        const loadedCategories: Category[] = [];
 
         for (const categoryDoc of categoriesSnap.docs) {
-          const categoryData = categoryDoc.data()
+          const categoryData = categoryDoc.data();
           const subcategoriesRef = collection(
             db,
             "categories",
             categoryDoc.id,
-            "subcategories",
-          ) as CollectionReference<DocumentData>
-          const subcategoriesSnap = await getDocs(query(subcategoriesRef, orderBy("order", "asc")))
+            "subcategories"
+          ) as CollectionReference<DocumentData>;
+          const subcategoriesSnap = await getDocs(query(subcategoriesRef, orderBy("order", "asc")));
 
-          const loadedSubcategories: Subcategory[] = []
+          const loadedSubcategories: Subcategory[] = [];
 
           for (const subcategoryDoc of subcategoriesSnap.docs) {
-            const subcategoryData = subcategoryDoc.data()
+            const subcategoryData = subcategoryDoc.data();
             const questionsRef = collection(
               db,
               "categories",
               categoryDoc.id,
               "subcategories",
               subcategoryDoc.id,
-              "questions",
-            ) as CollectionReference<DocumentData>
-            const questionsSnap = await getDocs(questionsRef)
+              "questions"
+            ) as CollectionReference<DocumentData>;
+            const questionsSnap = await getDocs(questionsRef);
 
             const loadedQuestions: Question[] = questionsSnap.docs.map((qDoc) => ({
               id: qDoc.id,
               question: qDoc.data().question || "",
               answer: qDoc.data().answer || "",
               attachments: qDoc.data().attachments || [],
-            }))
+            }));
 
             loadedSubcategories.push({
               id: subcategoryDoc.id,
               title: subcategoryData.title || "",
               order: subcategoryData.order,
               questions: loadedQuestions,
-            })
+            });
           }
 
           loadedCategories.push({
@@ -126,360 +133,568 @@ export default function Resources() {
             title: categoryData.title || "",
             order: categoryData.order,
             subcategories: loadedSubcategories,
-          })
+          });
         }
 
-        setCategories(loadedCategories)
+        setCategories(loadedCategories);
       } catch (error) {
-        console.error("Error fetching categories:", error)
-        Alert.alert("Error", "Failed to load resources. Please try again.")
+        console.error("Error fetching categories:", error);
+        Alert.alert("Error", "Failed to load resources. Please try again.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   const renderQuestion =
     (catId: string, subId: string) =>
     ({ item }: { item: Question }) => (
-      <TouchableOpacity style={styles.questionItem} onPress={() => setActiveQA(item)} activeOpacity={0.6}>
-        <View style={styles.questionContent}>
-          <Text style={styles.questionText} numberOfLines={2}>
-            {item.question}
-          </Text>
+      <TouchableOpacity
+        style={styles.questionItem}
+        onPress={() => setActiveQA(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.questionIconContainer}>
+          <IconSymbol name="questionmark.circle.fill" size={20} color="#3b82f6" />
         </View>
-        <Text style={styles.questionChevron}>›</Text>
+        <Text style={styles.questionText} numberOfLines={2}>
+          {item.question}
+        </Text>
+        <IconSymbol name="chevron.right" size={16} color="#9ca3af" />
       </TouchableOpacity>
-    )
+    );
 
   const renderSubcategory =
     (catId: string) =>
     ({ item }: { item: Subcategory }) => (
-      <View>
-        <TouchableOpacity style={styles.subHeader} onPress={() => toggleSub(item.id)} activeOpacity={0.7}>
+      <View style={styles.subcategoryContainer}>
+        <TouchableOpacity
+          style={styles.subHeader}
+          onPress={() => toggleSub(item.id)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.subIconContainer}>
+            <IconSymbol name="folder.fill" size={18} color="#f59e0b" />
+          </View>
           <Text style={styles.subTitle}>{item.title}</Text>
-          <Text style={[styles.subChevron, { transform: [{ rotate: expandedSub === item.id ? "180deg" : "0deg" }] }]}>
-            ▼
-          </Text>
+          <View style={styles.subBadge}>
+            <Text style={styles.subBadgeText}>{item.questions.length}</Text>
+          </View>
+          <IconSymbol
+            name={expandedSub === item.id ? "chevron.down" : "chevron.right"}
+            size={16}
+            color="#9ca3af"
+          />
         </TouchableOpacity>
         {expandedSub === item.id && (
-          <FlatList
-            data={item.questions}
-            keyExtractor={(q) => q.id}
-            renderItem={renderQuestion(catId, item.id)}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={styles.questionSeparator} />}
-            contentContainerStyle={styles.questionsContainer}
-          />
+          <View style={styles.questionsContainer}>
+            {item.questions.map((q, index) => (
+              <View key={q.id}>
+                {renderQuestion(catId, item.id)({ item: q })}
+                {index < item.questions.length - 1 && <View style={styles.questionSeparator} />}
+              </View>
+            ))}
+          </View>
         )}
       </View>
-    )
+    );
 
   const renderCategory = ({ item }: { item: Category }) => (
-    <View style={styles.categoryBlock}>
-      <TouchableOpacity style={styles.categoryHeader} onPress={() => toggleCategory(item.id)} activeOpacity={0.7}>
-        <Text style={styles.categoryTitle}>{item.title}</Text>
-        <Text
-          style={[
-            styles.categoryChevron,
-            { transform: [{ rotate: expandedCategory === item.id ? "180deg" : "0deg" }] },
-          ]}
-        >
-          ▼
-        </Text>
-      </TouchableOpacity>
-      {expandedCategory === item.id && (
-        <FlatList
-          data={item.subcategories}
-          keyExtractor={(s) => s.id}
-          renderItem={renderSubcategory(item.id)}
-          scrollEnabled={false}
-          ItemSeparatorComponent={() => <View style={styles.subcategorySeparator} />}
+    <View style={styles.categoryCard}>
+      <TouchableOpacity
+        style={styles.categoryHeader}
+        onPress={() => toggleCategory(item.id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.categoryIconContainer}>
+          <IconSymbol name="book.fill" size={22} color="#fff" />
+        </View>
+        <View style={styles.categoryInfo}>
+          <Text style={styles.categoryTitle}>{item.title}</Text>
+          <Text style={styles.categorySubtitle}>
+            {item.subcategories.length} {item.subcategories.length === 1 ? "topic" : "topics"}
+          </Text>
+        </View>
+        <IconSymbol
+          name={expandedCategory === item.id ? "chevron.down" : "chevron.right"}
+          size={20}
+          color="#9ca3af"
         />
+      </TouchableOpacity>
+
+      {expandedCategory === item.id && (
+        <View style={styles.subcategoriesList}>
+          {item.subcategories.map((sub, index) => (
+            <View key={sub.id}>
+              {renderSubcategory(item.id)({ item: sub })}
+              {index < item.subcategories.length - 1 && <View style={styles.subcategorySeparator} />}
+            </View>
+          ))}
+        </View>
       )}
     </View>
-  )
+  );
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.screenTitle}>📚 Resources</Text>
-        <Text style={styles.headerSubtitle}>Find answers and support</Text>
-      </View>
-
-      {loading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#10B981" />
+  if (loading) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
           <Text style={styles.loadingText}>Loading resources...</Text>
         </View>
-      ) : categories.length === 0 ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyText}>No resources found</Text>
+      </ThemedView>
+    );
+  }
+
+  return (
+    <ThemedView style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>Resources</Text>
+            <Text style={styles.headerSubtitle}>
+              {categories.length} {categories.length === 1 ? "category" : "categories"} available
+            </Text>
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={categories}
-          keyExtractor={(c) => c.id}
-          renderItem={renderCategory}
-          contentContainerStyle={styles.listContent}
-          scrollEnabled={true}
-          ItemSeparatorComponent={() => <View style={styles.categorySeparator} />}
-        />
-      )}
 
-      <Modal visible={!!activeQA} transparent animationType="fade" onRequestClose={() => setActiveQA(null)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+        {/* Search Hint */}
+        <View style={styles.searchHint}>
+          <View style={styles.searchHintIcon}>
+            <IconSymbol name="lightbulb.fill" size={18} color="#f59e0b" />
+          </View>
+          <Text style={styles.searchHintText}>
+            Tap a category to explore topics and find answers
+          </Text>
+        </View>
+
+        {/* Categories */}
+        {categories.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIcon}>
+              <IconSymbol name="book.closed.fill" size={40} color="#3b82f6" />
+            </View>
+            <Text style={styles.emptyText}>No resources available</Text>
+            <Text style={styles.emptySubtext}>Check back later for updates</Text>
+          </View>
+        ) : (
+          <View style={styles.categoriesContainer}>
+            {categories.map((category) => (
+              <View key={category.id}>{renderCategory({ item: category })}</View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Answer Modal */}
+      <Modal
+        visible={!!activeQA}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setActiveQA(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Answer</Text>
-              <Pressable onPress={() => setActiveQA(null)} style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseText}>✕</Text>
-              </Pressable>
+              <View>
+                <Text style={styles.modalTitle}>Answer</Text>
+                <Text style={styles.modalSubtitle}>Resource details</Text>
+              </View>
+              <TouchableOpacity onPress={() => setActiveQA(null)} style={styles.closeButton}>
+                <IconSymbol name="xmark" size={20} color="#666" />
+              </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalContent}>
-              <View style={styles.modalSection}>
-                <Text style={styles.modalLabel}>Question</Text>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Question */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Question</Text>
                 <View style={styles.questionBox}>
-                  <Text style={styles.modalQuestion}>{activeQA?.question}</Text>
+                  <IconSymbol name="questionmark.circle.fill" size={20} color="#3b82f6" />
+                  <Text style={styles.questionBoxText}>{activeQA?.question}</Text>
                 </View>
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.modalSection}>
-                <Text style={styles.modalLabel}>Answer</Text>
+              {/* Answer */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Answer</Text>
                 <View style={styles.answerBox}>
-                  <Text style={styles.modalAnswer}>{activeQA?.answer}</Text>
+                  <Text style={styles.answerText}>{activeQA?.answer}</Text>
                 </View>
               </View>
 
-              {activeQA?.attachments?.length ? (
-                <>
-                  <View style={styles.divider} />
-                  <View style={styles.modalSection}>
-                    <Text style={styles.modalLabel}>Attachments</Text>
-                    <View style={styles.attachmentsContainer}>
-                      {activeQA.attachments.map((att) => (
-                        <Pressable
-                          key={att.url}
-                          style={styles.attachmentButton}
-                          onPress={() => openAttachment(att.url)}
-                        >
-                          <View style={styles.attachmentIconContainer}>
-                            <Text style={styles.attachmentIcon}>{att.type === "pdf" ? "📄" : "🔗"}</Text>
-                          </View>
-                          <View style={styles.attachmentContent}>
-                            <Text style={styles.attachmentLabel}>{att.label}</Text>
-                            <Text style={styles.attachmentHint}>Tap to open</Text>
-                          </View>
-                          <Text style={styles.attachmentArrow}>›</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </View>
-                </>
-              ) : null}
-            </ScrollView>
+              {/* Attachments */}
+              {activeQA?.attachments && activeQA.attachments.length > 0 && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Attachments</Text>
+                  {activeQA.attachments.map((att, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.attachmentButton}
+                      onPress={() => openAttachment(att.url)}
+                      activeOpacity={0.7}
+                    >
+                      <View
+                        style={[
+                          styles.attachmentIcon,
+                          { backgroundColor: att.type === "pdf" ? "#fee2e2" : "#dbeafe" },
+                        ]}
+                      >
+                        <IconSymbol
+                          name={att.type === "pdf" ? "doc.fill" : "link"}
+                          size={18}
+                          color={att.type === "pdf" ? "#ef4444" : "#3b82f6"}
+                        />
+                      </View>
+                      <View style={styles.attachmentInfo}>
+                        <Text style={styles.attachmentLabel}>{att.label}</Text>
+                        <Text style={styles.attachmentHint}>Tap to open</Text>
+                      </View>
+                      <IconSymbol name="arrow.up.right" size={16} color="#9ca3af" />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
-            <View style={styles.modalActions}>
-              <Pressable style={styles.cancelButton} onPress={() => setActiveQA(null)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.doneButton} onPress={() => setActiveQA(null)}>
+              {/* Done Button */}
+              <TouchableOpacity style={styles.doneButton} onPress={() => setActiveQA(null)}>
                 <Text style={styles.doneButtonText}>Done</Text>
-              </Pressable>
-            </View>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
-    </View>
-  )
+    </ThemedView>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
-  headerContainer: {
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+    paddingBottom: 100,
   },
-  screenTitle: {
-    fontSize: 32,
+  scrollView: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 28,
     fontWeight: "800",
-    color: "#0f172a",
-    marginBottom: 4,
+    color: "#111827",
     letterSpacing: -0.5,
   },
-  headerSubtitle: { fontSize: 14, color: "#64748b", fontWeight: "500" },
-  centerContent: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20 },
-  loadingText: { marginTop: 12, fontSize: 16, color: "#64748b", fontWeight: "500" },
-  emptyText: { fontSize: 16, color: "#94a3b8", fontWeight: "500" },
-  listContent: { paddingHorizontal: 16, paddingVertical: 16, paddingBottom: 32 },
-  categorySeparator: { height: 8 },
-  categoryBlock: {
-    backgroundColor: "#ffffff",
+  headerSubtitle: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  searchHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fef3c7",
+    marginHorizontal: 20,
+    padding: 14,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
+    marginBottom: 20,
+    gap: 12,
+  },
+  searchHintIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#fde68a",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  searchHintText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#92400e",
+    fontWeight: "500",
+    lineHeight: 18,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#dbeafe",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  categoriesContainer: {
+    paddingHorizontal: 20,
+    gap: 16,
+    paddingBottom: 20,
+  },
+  categoryCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   categoryHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: "#f9fafb",
+    padding: 16,
+    gap: 14,
   },
-  categoryTitle: { fontSize: 17, fontWeight: "700", color: "#1e293b", flex: 1 },
-  categoryChevron: { fontSize: 14, color: "#cbd5e1", fontWeight: "600" },
-  subcategorySeparator: { height: 0.5, backgroundColor: "#f1f5f9", marginHorizontal: 16 },
-  subHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fafbfc",
-  },
-  subTitle: { fontSize: 15, fontWeight: "700", color: "#334155", flex: 1 },
-  subChevron: { fontSize: 12, color: "#cbd5e1", fontWeight: "600" },
-  questionsContainer: { paddingHorizontal: 16, paddingVertical: 8 },
-  questionSeparator: { height: 8 },
-  questionItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: "#f8fafc",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
-  questionContent: { flex: 1 },
-  questionText: { fontSize: 14, fontWeight: "600", color: "#1e293b", lineHeight: 20 },
-  questionChevron: { fontSize: 20, color: "#cbd5e1", fontWeight: "300" },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "transparent",
+  categoryIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#3b82f6",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 16,
   },
-  modalCard: {
-    width: "100%",
-    maxWidth: 500,
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    maxHeight: "85%",
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
+  categoryInfo: {
+    flex: 1,
+  },
+  categoryTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 2,
+  },
+  categorySubtitle: {
+    fontSize: 13,
+    color: "#6b7280",
+  },
+  subcategoriesList: {
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  subcategoryContainer: {
+    backgroundColor: "#fafafa",
+  },
+  subcategorySeparator: {
+    height: 1,
+    backgroundColor: "#f3f4f6",
+  },
+  subHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  subIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#fef3c7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  subTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  subBadge: {
+    backgroundColor: "#e5e7eb",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  subBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  questionsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  questionSeparator: {
+    height: 8,
+  },
+  questionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 14,
+    borderRadius: 12,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  questionIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#dbeafe",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  questionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#374151",
+    lineHeight: 20,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "90%",
   },
   modalHeader: {
-    backgroundColor: "#10B981",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    alignItems: "flex-start",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
   },
-  modalTitle: { fontSize: 20, fontWeight: "800", color: "#ffffff", letterSpacing: -0.5 },
-  modalCloseButton: { padding: 8, marginRight: -8 },
-  modalCloseText: { fontSize: 26, color: "#ffffff", opacity: 0.8, lineHeight: 26, fontWeight: "600" },
-  modalContent: { paddingHorizontal: 20, paddingVertical: 20 },
-  modalSection: { marginBottom: 16 },
-  modalLabel: {
-    fontSize: 12,
+  modalTitle: {
+    fontSize: 22,
     fontWeight: "800",
-    color: "#64748b",
+    color: "#111827",
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBody: {
+    padding: 20,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#6b7280",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
     marginBottom: 10,
   },
   questionBox: {
-    backgroundColor: "#f0fdf4",
-    borderLeftWidth: 4,
-    borderLeftColor: "#10B981",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  modalQuestion: { fontSize: 16, fontWeight: "700", color: "#1e293b", lineHeight: 24 },
-  answerBox: {
-    backgroundColor: "#f8fafc",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  modalAnswer: { fontSize: 15, lineHeight: 24, color: "#475569", fontWeight: "500" },
-  divider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 16 },
-  attachmentsContainer: { gap: 10 },
-  attachmentButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    backgroundColor: "#f0f9ff",
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: "#bfdbfe",
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
+    backgroundColor: "#dbeafe",
+    padding: 14,
+    borderRadius: 12,
     gap: 12,
   },
-  attachmentIconContainer: {
+  questionBoxText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1e40af",
+    lineHeight: 22,
+  },
+  answerBox: {
+    backgroundColor: "#f9fafb",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  answerText: {
+    fontSize: 15,
+    color: "#374151",
+    lineHeight: 24,
+  },
+  attachmentButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    padding: 14,
+    borderRadius: 12,
+    gap: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  attachmentIcon: {
     width: 40,
     height: 40,
-    backgroundColor: "#e0f2fe",
-    borderRadius: 8,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  attachmentIcon: { fontSize: 20, lineHeight: 24 },
-  attachmentContent: { flex: 1 },
-  attachmentLabel: { fontSize: 14, fontWeight: "700", color: "#1e40af", marginBottom: 2 },
-  attachmentHint: { fontSize: 12, color: "#64748b", fontWeight: "500" },
-  attachmentArrow: { fontSize: 18, color: "#94a3b8", fontWeight: "400" },
-  modalActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#f8fafc",
-    borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
+  attachmentInfo: {
+    flex: 1,
   },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: "#e2e8f0",
+  attachmentLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 2,
   },
-  cancelButtonText: { color: "#475569", fontWeight: "700", fontSize: 14 },
-  doneButton: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: "#10B981", borderRadius: 8 },
-  doneButtonText: { color: "#ffffff", fontWeight: "700", fontSize: 14 },
-})
+  attachmentHint: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  doneButton: {
+    backgroundColor: "#3b82f6",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+  },
+});
