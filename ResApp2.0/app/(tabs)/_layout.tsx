@@ -110,12 +110,7 @@ export default function TabLayout() {
           }}
         />
 
-        <Tabs.Screen
-          name="calendar"
-          options={{
-            href: null,
-          }}
-        />
+        
         
         <Tabs.Screen
           name="my-shifts"
@@ -152,6 +147,13 @@ export default function TabLayout() {
           options={{
             title: "Ressources",
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="book.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="calendar"
+          options={{
+            title: "Ops Calendar",
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
           }}
         />
 

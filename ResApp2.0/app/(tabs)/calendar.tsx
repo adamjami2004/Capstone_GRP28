@@ -1,64 +1,22 @@
-"use client"
-
-import { useState } from "react"
-import { StyleSheet, View, TouchableOpacity, Modal, ScrollView, Pressable, Text } from "react-native"
+import { useState, useEffect } from "react"
+import { StyleSheet, View, TouchableOpacity, Modal, ScrollView, Pressable, Text, TextInput, Alert } from "react-native"
 import { ThemedView } from "@/components/themed-view"
 import { IconSymbol } from "@/components/ui/icon-symbol"
+import { collection, addDoc, onSnapshot, query, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore"
+import { db, auth } from "@/firebase"
+import { onAuthStateChanged } from "firebase/auth"
 
 type Event = {
-  id: number
+  id: string
   title: string
   type: "event" | "deadline" | "special"
   startTime: string
   endTime?: string
+  date: string
 }
 
 type EventsMap = {
   [key: string]: Event[]
-}
-
-const MOCK_EVENTS: EventsMap = {
-  "2025-10-05": [
-    { id: 101, title: "Q4 Planning Meeting", type: "event", startTime: "9:00 AM", endTime: "11:00 AM" },
-    { id: 102, title: "Budget Review", type: "deadline", startTime: "5:00 PM" },
-  ],
-  "2024-10-12": [{ id: 103, title: "Team Building Event", type: "special", startTime: "1:00 PM", endTime: "5:00 PM" }],
-  "2024-10-18": [
-    { id: 104, title: "Client Workshop", type: "event", startTime: "10:00 AM", endTime: "3:00 PM" },
-    { id: 105, title: "Quarterly Report Due", type: "deadline", startTime: "11:59 PM" },
-  ],
-  "2024-10-25": [{ id: 106, title: "Product Demo", type: "event", startTime: "2:00 PM", endTime: "3:30 PM" }],
-  "2024-10-31": [{ id: 107, title: "Halloween Party", type: "special", startTime: "6:00 PM", endTime: "10:00 PM" }],
-  "2024-11-03": [{ id: 201, title: "Strategy Session", type: "event", startTime: "9:00 AM", endTime: "12:00 PM" }],
-  "2024-11-08": [
-    { id: 202, title: "Design Sprint", type: "event", startTime: "10:00 AM", endTime: "4:00 PM" },
-    { id: 203, title: "Proposal Deadline", type: "deadline", startTime: "5:00 PM" },
-  ],
-  "2024-11-15": [{ id: 204, title: "Company Retreat", type: "special", startTime: "All Day" }],
-  "2024-11-22": [
-    { id: 205, title: "Client Presentation", type: "event", startTime: "2:00 PM", endTime: "4:00 PM" },
-    { id: 206, title: "Monthly Review", type: "event", startTime: "4:30 PM", endTime: "5:30 PM" },
-  ],
-  "2024-11-28": [
-    { id: 207, title: "Thanksgiving Celebration", type: "special", startTime: "12:00 PM", endTime: "3:00 PM" },
-  ],
-  "2025-04-05": [
-    { id: 1, title: "Project Proposal Due", type: "deadline", startTime: "11:59 PM" },
-    { id: 2, title: "Team Meeting", type: "event", startTime: "2:00 PM", endTime: "3:30 PM" },
-  ],
-  "2025-04-10": [{ id: 3, title: "Design Review", type: "event", startTime: "10:00 AM", endTime: "11:30 AM" }],
-  "2025-04-12": [{ id: 9, title: "Company Anniversary", type: "special", startTime: "All Day" }],
-  "2025-04-15": [
-    { id: 4, title: "Final Submission", type: "deadline", startTime: "11:59 PM" },
-    { id: 10, title: "Team Lunch", type: "special", startTime: "12:00 PM", endTime: "2:00 PM" },
-  ],
-  "2025-04-18": [
-    { id: 5, title: "Client Presentation", type: "event", startTime: "3:00 PM", endTime: "4:30 PM" },
-    { id: 6, title: "Budget Report Due", type: "deadline", startTime: "5:00 PM" },
-  ],
-  "2025-04-22": [{ id: 7, title: "Sprint Planning", type: "event", startTime: "9:00 AM", endTime: "10:30 AM" }],
-  "2025-04-25": [{ id: 11, title: "Product Launch", type: "special", startTime: "2:00 PM", endTime: "5:00 PM" }],
-  "2025-04-28": [{ id: 8, title: "Monthly Review", type: "event", startTime: "1:00 PM", endTime: "2:30 PM" }],
 }
 
 const MONTHS = [
@@ -67,6 +25,12 @@ const MONTHS = [
 ]
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+const EVENT_TYPES: { label: string; value: Event["type"]; color: string }[] = [
+  { label: "Event", value: "event", color: "#3b82f6" },
+  { label: "Deadline", value: "deadline", color: "#ef4444" },
+  { label: "Special", value: "special", color: "#8b5cf6" },
+]
 
 const getEventColor = (type: Event["type"]) => {
   switch (type) {
@@ -77,15 +41,76 @@ const getEventColor = (type: Event["type"]) => {
 }
 
 const formatTimeRange = (event: Event) => {
+  if (event.type === "deadline") return `Due: ${event.startTime}`
   if (event.startTime === "All Day") return "All Day"
   if (event.endTime) return `${event.startTime} - ${event.endTime}`
   return event.startTime
 }
 
 export default function TabTwoScreen() {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 3, 1))
+  const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [modalVisible, setModalVisible] = useState(false)
+  const [createModalVisible, setCreateModalVisible] = useState(false)
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [events, setEvents] = useState<EventsMap>({})
+  const [isLoading, setIsLoading] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null)
+
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    type: "event" as Event["type"],
+    startTime: "",
+    endTime: "",
+  })
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, "Users", user.uid))
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            setIsAdmin(userData.role === "Admin")
+          } else {
+            setIsAdmin(false)
+          }
+        } catch (error) {
+          console.error("Error fetching user role:", error)
+          setIsAdmin(false)
+        }
+      } else {
+        setIsAdmin(false)
+      }
+    })
+
+    const eventsQuery = query(collection(db, "CalendarEvents"))
+    const unsubscribeEvents = onSnapshot(eventsQuery, (snapshot) => {
+      const eventsMap: EventsMap = {}
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data()
+        const event: Event = {
+          id: doc.id,
+          title: data.title,
+          type: data.type,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          date: data.date,
+        }
+        if (!eventsMap[event.date]) {
+          eventsMap[event.date] = []
+        }
+        eventsMap[event.date].push(event)
+      })
+      setEvents(eventsMap)
+    })
+
+    return () => {
+      unsubscribeAuth()
+      unsubscribeEvents()
+    }
+  }, [])
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
@@ -126,6 +151,94 @@ export default function TabTwoScreen() {
     })
   }
 
+  const handleOpenCreateModal = () => {
+    setModalVisible(false)
+    setNewEvent({
+      title: "",
+      type: "event",
+      startTime: "",
+      endTime: "",
+    })
+    setCreateModalVisible(true)
+  }
+
+  const handleOpenEditModal = (event: Event) => {
+    setEditingEvent(event)
+    setNewEvent({
+      title: event.title,
+      type: event.type,
+      startTime: event.startTime,
+      endTime: event.endTime || "",
+    })
+    setModalVisible(false)
+    setEditModalVisible(true)
+  }
+
+  const handleCreateEvent = async () => {
+    if (!selectedDate || !newEvent.title || !newEvent.startTime) return
+
+    setIsLoading(true)
+    try {
+      await addDoc(collection(db, "CalendarEvents"), {
+        title: newEvent.title,
+        type: newEvent.type,
+        startTime: newEvent.startTime,
+        endTime: newEvent.type === "deadline" ? null : (newEvent.endTime || null),
+        date: selectedDate,
+        createdAt: new Date(),
+      })
+      setCreateModalVisible(false)
+      setModalVisible(true)
+    } catch (error) {
+      console.error("Error creating event:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleUpdateEvent = async () => {
+    if (!editingEvent || !newEvent.title || !newEvent.startTime) return
+
+    setIsLoading(true)
+    try {
+      await updateDoc(doc(db, "CalendarEvents", editingEvent.id), {
+        title: newEvent.title,
+        type: newEvent.type,
+        startTime: newEvent.startTime,
+        endTime: newEvent.type === "deadline" ? null : (newEvent.endTime || null),
+        updatedAt: new Date(),
+      })
+      setEditModalVisible(false)
+      setEditingEvent(null)
+      setModalVisible(true)
+    } catch (error) {
+      console.error("Error updating event:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteEvent = (event: Event) => {
+    Alert.alert(
+      "Delete Event",
+      `Are you sure you want to delete "${event.title}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "CalendarEvents", event.id))
+            } catch (error) {
+              console.error("Error deleting event:", error)
+            }
+          },
+        },
+      ]
+    )
+  }
+
   const renderCalendar = () => {
     const daysInMonth = getDaysInMonth(currentDate)
     const firstDay = getFirstDayOfMonth(currentDate)
@@ -136,15 +249,13 @@ export default function TabTwoScreen() {
 
     const days = []
 
-    // Add empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
       days.push(<View key={`empty-${i}`} style={styles.dayCell} />)
     }
 
-    // Add actual day cells
     for (let day = 1; day <= daysInMonth; day++) {
       const dateKey = formatDateKey(year, month, day)
-      const dayEvents = MOCK_EVENTS[dateKey]
+      const dayEvents = events[dateKey]
       const hasEvents = dayEvents !== undefined
       const isToday = isCurrentMonth && today.getDate() === day
 
@@ -172,7 +283,93 @@ export default function TabTwoScreen() {
     return days
   }
 
-  const selectedEvents = selectedDate && MOCK_EVENTS[selectedDate] ? MOCK_EVENTS[selectedDate] : []
+  const selectedEvents = selectedDate && events[selectedDate] ? events[selectedDate] : []
+
+  const renderEventForm = (isEdit: boolean) => (
+    <>
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Title</Text>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Event title"
+          placeholderTextColor="#9ca3af"
+          value={newEvent.title}
+          onChangeText={(text) => setNewEvent({ ...newEvent, title: text })}
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Type</Text>
+        <View style={styles.typeSelector}>
+          {EVENT_TYPES.map((type) => (
+            <TouchableOpacity
+              key={type.value}
+              style={[
+                styles.typeOption,
+                newEvent.type === type.value && { backgroundColor: type.color },
+              ]}
+              onPress={() => setNewEvent({ ...newEvent, type: type.value, endTime: type.value === "deadline" ? "" : newEvent.endTime })}
+            >
+              <Text
+                style={[
+                  styles.typeOptionText,
+                  newEvent.type === type.value && { color: "#fff" },
+                ]}
+              >
+                {type.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {newEvent.type === "deadline" ? (
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>Deadline Time</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="11:59 PM"
+            placeholderTextColor="#9ca3af"
+            value={newEvent.startTime}
+            onChangeText={(text) => setNewEvent({ ...newEvent, startTime: text })}
+          />
+        </View>
+      ) : (
+        <View style={styles.timeRow}>
+          <View style={styles.timeGroup}>
+            <Text style={styles.formLabel}>Start Time</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="9:00 AM"
+              placeholderTextColor="#9ca3af"
+              value={newEvent.startTime}
+              onChangeText={(text) => setNewEvent({ ...newEvent, startTime: text })}
+            />
+          </View>
+          <View style={styles.timeGroup}>
+            <Text style={styles.formLabel}>End Time</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="10:00 AM"
+              placeholderTextColor="#9ca3af"
+              value={newEvent.endTime}
+              onChangeText={(text) => setNewEvent({ ...newEvent, endTime: text })}
+            />
+          </View>
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={[styles.createButton, (!newEvent.title || !newEvent.startTime) && styles.createButtonDisabled]}
+        onPress={isEdit ? handleUpdateEvent : handleCreateEvent}
+        disabled={!newEvent.title || !newEvent.startTime || isLoading}
+      >
+        <Text style={styles.createButtonText}>
+          {isLoading ? (isEdit ? "Saving..." : "Creating...") : (isEdit ? "Save Changes" : "Create Event")}
+        </Text>
+      </TouchableOpacity>
+    </>
+  )
 
   return (
     <ThemedView style={styles.container}>
@@ -208,21 +405,9 @@ export default function TabTwoScreen() {
           <View style={styles.calendarGrid}>{renderCalendar()}</View>
         </View>
 
-        {/* Add New Event Button */}
-        <TouchableOpacity 
-          style={styles.addEventButton}
-          activeOpacity={0.8}
-          onPress={() => console.log("Add event pressed")}
-        >
-          <IconSymbol name="plus.circle.fill" size={24} color="#3b82f6" />
-          <Text style={styles.addEventButtonText}>Add a new event</Text>
-          <IconSymbol name="chevron.right" size={20} color="#3b82f6" />
-        </TouchableOpacity>
-
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* View Events Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -239,14 +424,14 @@ export default function TabTwoScreen() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
-                <IconSymbol name="xmark" size={24} color="#666" />
+                <IconSymbol name="xmark" size={20} color="#666" />
               </TouchableOpacity>
             </View>
 
             {selectedEvents.length === 0 ? (
               <View style={styles.emptyState}>
                 <View style={styles.emptyIconContainer}>
-                  <IconSymbol name="calendar" size={56} color="#e5e7eb" />
+                  <IconSymbol name="calendar" size={48} color="#d1d5db" />
                 </View>
                 <Text style={styles.emptyText}>No events scheduled</Text>
                 <Text style={styles.emptySubtext}>This day is free</Text>
@@ -258,11 +443,27 @@ export default function TabTwoScreen() {
                     <View style={[styles.eventColorBar, { backgroundColor: getEventColor(event.type) }]} />
                     <View style={styles.eventContent}>
                       <View style={styles.eventHeader}>
-                        <View style={[styles.eventTypeBadge, { backgroundColor: `${getEventColor(event.type)}20` }]}>
+                        <View style={[styles.eventTypeBadge, { backgroundColor: `${getEventColor(event.type)}15` }]}>
                           <Text style={[styles.eventTypeText, { color: getEventColor(event.type) }]}>
                             {event.type === "deadline" ? "Deadline" : event.type === "special" ? "Special" : "Event"}
                           </Text>
                         </View>
+                        {isAdmin && (
+                          <View style={styles.eventActions}>
+                            <TouchableOpacity
+                              style={styles.eventActionButton}
+                              onPress={() => handleOpenEditModal(event)}
+                            >
+                              <IconSymbol name="pencil" size={14} color="#6b7280" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.eventActionButton}
+                              onPress={() => handleDeleteEvent(event)}
+                            >
+                              <IconSymbol name="trash" size={14} color="#ef4444" />
+                            </TouchableOpacity>
+                          </View>
+                        )}
                       </View>
                       <Text style={styles.eventTitle}>{event.title}</Text>
                       <View style={styles.eventTimeContainer}>
@@ -274,6 +475,61 @@ export default function TabTwoScreen() {
                 ))}
               </ScrollView>
             )}
+
+            {isAdmin && (
+              <TouchableOpacity style={styles.addButton} onPress={handleOpenCreateModal}>
+                <IconSymbol name="plus" size={18} color="#fff" />
+                <Text style={styles.addButtonText}>Add Event</Text>
+              </TouchableOpacity>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={createModalVisible}
+        onRequestClose={() => setCreateModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setCreateModalVisible(false)}>
+          <Pressable style={styles.createModalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.createModalHeader}>
+              <Text style={styles.createModalTitle}>New Event</Text>
+              <TouchableOpacity onPress={() => setCreateModalVisible(false)} style={styles.closeButton}>
+                <IconSymbol name="xmark" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.createModalDate}>
+              {selectedDate && formatSelectedDate(selectedDate)}
+            </Text>
+
+            {renderEventForm(false)}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={editModalVisible}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setEditModalVisible(false)}>
+          <Pressable style={styles.createModalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.createModalHeader}>
+              <Text style={styles.createModalTitle}>Edit Event</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={styles.closeButton}>
+                <IconSymbol name="xmark" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.createModalDate}>
+              {selectedDate && formatSelectedDate(selectedDate)}
+            </Text>
+
+            {renderEventForm(true)}
           </Pressable>
         </Pressable>
       </Modal>
@@ -364,9 +620,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   todayCell: {
-    backgroundColor: "#eff6ff",
+    backgroundColor: "#f3f4f6",
     borderWidth: 2,
-    borderColor: "#3b82f6",
+    borderColor: "#000",
   },
   dayText: {
     fontSize: 16,
@@ -375,7 +631,7 @@ const styles = StyleSheet.create({
   },
   todayText: {
     fontWeight: "700",
-    color: "#3b82f6",
+    color: "#000",
   },
   eventDots: {
     flexDirection: "row",
@@ -387,63 +643,34 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
   },
-  addEventButton: {
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 16,
-    padding: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-    borderWidth: 2,
-    borderColor: "#e0f2fe",
-  },
-  addEventButtonText: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#3b82f6",
-    marginLeft: 12,
-  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 24,
-    padding: 28,
+    borderRadius: 20,
+    padding: 24,
     width: "100%",
-    maxWidth: 500,
+    maxWidth: 400,
     maxHeight: "80%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 12,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 24,
-    paddingBottom: 20,
+    marginBottom: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
   },
   modalTitle: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "700",
-    color: "#111827",
+    color: "#000",
     letterSpacing: -0.5,
     marginBottom: 4,
   },
@@ -453,81 +680,87 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   closeButton: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: "#f9fafb",
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
   },
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 60,
+    paddingVertical: 48,
   },
   emptyIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "#f9fafb",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
     color: "#374151",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   emptySubtext: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#9ca3af",
   },
   eventsList: {
-    maxHeight: 450,
+    maxHeight: 350,
   },
   eventCard: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    marginBottom: 14,
+    borderRadius: 14,
+    marginBottom: 12,
     flexDirection: "row",
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
   },
   eventColorBar: {
-    width: 5,
+    width: 4,
   },
   eventContent: {
     flex: 1,
-    padding: 18,
+    padding: 16,
   },
   eventHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   eventTypeBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   eventTypeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  eventActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  eventActionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   eventTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
-    marginBottom: 8,
-    lineHeight: 24,
+    color: "#000",
+    marginBottom: 6,
   },
   eventTimeContainer: {
     flexDirection: "row",
@@ -535,8 +768,107 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   eventTime: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#6b7280",
     fontWeight: "500",
+  },
+  addButton: {
+    backgroundColor: "#000",
+    borderRadius: 12,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 16,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  createModalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+  },
+  createModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  createModalTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#000",
+    letterSpacing: -0.5,
+  },
+  createModalDate: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 24,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  formLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  textInput: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: "#000",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  typeSelector: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  typeOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+  },
+  typeOptionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  timeRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 24,
+  },
+  timeGroup: {
+    flex: 1,
+  },
+  createButton: {
+    backgroundColor: "#000",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  createButtonDisabled: {
+    backgroundColor: "#d1d5db",
+  },
+  createButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 })
