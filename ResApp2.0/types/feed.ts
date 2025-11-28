@@ -6,6 +6,8 @@ export interface Post {
   title: string;
   description: string;
   date: string; // ISO date string
+  startTime: string; // ISO time string for event start
+  endTime: string; // ISO time string for event end
   imageUrl?: string; // Optional image URL from Firebase Storage
   createdAt: number; // timestamp
   updatedAt: number; // timestamp
@@ -17,6 +19,8 @@ export interface CreatePostData {
   title: string;
   description: string;
   date: string;
+  startTime: string;
+  endTime: string;
   imageUrl?: string;
 }
 
@@ -24,6 +28,8 @@ export interface UpdatePostData {
   title?: string;
   description?: string;
   date?: string;
+  startTime?: string;
+  endTime?: string;
   imageUrl?: string;
 }
 
