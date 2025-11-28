@@ -115,13 +115,23 @@ export function validateTimeRange(
 }
 
 /**
+ * Parse a YYYY-MM-DD date string as a local date (not UTC)
+ * This avoids timezone issues where "2024-11-30" becomes Nov 29 in local time
+ */
+export function parseLocalDate(dateString: string): Date {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return new Date(year, month - 1, day); // month is 0-indexed
+}
+
+/**
  * Validate reservation date
  */
 export function validateReservationDate(date: string): {
   valid: boolean;
   error?: string;
 } {
-  const selectedDate = new Date(date);
+  // Parse date as local date to avoid timezone issues
+  const selectedDate = parseLocalDate(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -430,6 +440,17 @@ export async function cancelReservation(
 }
 
 /**
+ * Get today's date in YYYY-MM-DD format using local timezone
+ */
+export function getTodayDateString(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Fetch user's reservations
  */
 export async function fetchUserReservations(
@@ -453,12 +474,17 @@ export async function fetchUserReservations(
       allReservations.push({ id: doc.id, ...doc.data() } as Reservation);
     });
 
+    // Get today's date string for comparison
+    const todayString = getTodayDateString();
+
     // Filter and sort in memory
     let filteredReservations = allReservations;
     
     if (!includeHistory) {
-      // Only show confirmed reservations
-      filteredReservations = allReservations.filter(r => r.status === "confirmed");
+      // Only show confirmed reservations that are today or in the future
+      filteredReservations = allReservations.filter(r => 
+        r.status === "confirmed" && r.date >= todayString
+      );
     }
 
     // Sort by date and time
@@ -565,7 +591,8 @@ export async function fetchRoomReservations(
  * Format date for display
  */
 export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+  // Parse as local date to avoid timezone issues
+  const date = parseLocalDate(dateString);
   return date.toLocaleDateString("en-US", {
     weekday: "short",
     year: "numeric",
