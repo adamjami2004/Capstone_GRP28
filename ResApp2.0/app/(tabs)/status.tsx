@@ -146,7 +146,7 @@ export default function StatusScreen() {
                     },
                   ]}
                 >
-                  <IconSymbol name={item.icon as any} size={24} color="#fff" />
+                  <IconSymbol name={item.icon as any} size={32} color="#fff" />
                 </View>
                 <View style={styles.printerDetails}>
                   <Text style={styles.printerName}>{item.name}</Text>
@@ -179,12 +179,12 @@ export default function StatusScreen() {
 
             <View style={styles.metaInfo}>
               <View style={styles.metaRow}>
-                <IconSymbol name="clock" size={14} color="#6b7280" />
+                <IconSymbol name="clock" size={16} color="#6b7280" />
                 <Text style={styles.metaLabel}>Last Updated:</Text>
                 <Text style={styles.metaValue}>{formatDate(item.lastUpdated)}</Text>
               </View>
               <View style={styles.metaRow}>
-                <IconSymbol name="person" size={14} color="#6b7280" />
+                <IconSymbol name="person" size={16} color="#6b7280" />
                 <Text style={styles.metaLabel}>Updated By:</Text>
                 <Text style={styles.metaValue}>{item.updatedBy}</Text>
               </View>
@@ -246,9 +246,9 @@ const styles = StyleSheet.create({
   },
   statusCard: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -263,52 +263,52 @@ const styles = StyleSheet.create({
   printerInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 16,
   },
   printerIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 64,
+    height: 64,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
   },
   printerDetails: {
-    gap: 2,
+    gap: 4,
   },
   printerName: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "600",
     color: "#111827",
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
   },
   descriptionText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#6b7280",
-    marginTop: 1,
+    marginTop: 2,
   },
   divider: {
     height: 1,
     backgroundColor: "#e5e7eb",
-    marginVertical: 12,
+    marginVertical: 16,
   },
   metaInfo: {
-    gap: 8,
+    gap: 12,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   metaLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#6b7280",
     fontWeight: "500",
   },
   metaValue: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#111827",
     fontWeight: "600",
   },

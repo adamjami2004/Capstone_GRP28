@@ -157,6 +157,24 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="ressources/[categoryId]"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="ressources/[categoryId]/[subcategoryId]"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="ressources/[categoryId]/[subcategoryId]/[questionId]"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="calendar"
           options={{
             title: "Ops Calendar",
