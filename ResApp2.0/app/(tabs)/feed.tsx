@@ -466,38 +466,6 @@ export default function FeedScreen() {
     return (
       <View key={post.id} style={styles.postCardWrapper}>
         <View style={styles.postCard}>
-            {/* Days Left Badge - Top Right */}
-            {daysUntil >= 0 && daysUntil <= 7 && (
-              <View
-                style={[
-                  styles.urgencyBadge,
-                  styles.urgencyBadgeTopRight,
-                  daysUntil <= 2
-                    ? styles.urgencyBadgeHigh
-                    : styles.urgencyBadgeMedium,
-                ]}
-              >
-                <IconSymbol
-                  name="clock.fill"
-                  size={10}
-                  color={daysUntil <= 2 ? "#ef4444" : "#f59e0b"}
-                />
-                <Text
-                  style={[
-                    styles.urgencyText,
-                    daysUntil <= 2
-                      ? styles.urgencyTextHigh
-                      : styles.urgencyTextMedium,
-                  ]}
-                >
-                  {daysUntil === 0
-                    ? "Today"
-                    : daysUntil === 1
-                    ? "Tomorrow"
-                    : `${daysUntil}d`}
-                </Text>
-              </View>
-            )}
             {/* Post Header */}
           <View style={styles.postHeader}>
             <View style={styles.postUserInfo}>
@@ -522,31 +490,63 @@ export default function FeedScreen() {
                 </View>
               </View>
             </View>
-            {isOwnPost && (
-              <TouchableOpacity
-                onPress={() => {
-                  Alert.alert(
-                    "Post Options",
-                    "Choose an action",
-                    [
-                      {
-                        text: "Edit",
-                        onPress: () => handleEditPost(post),
-                      },
-                      {
-                        text: "Delete",
-                        style: "destructive",
-                        onPress: () => handleDeletePost(post),
-                      },
-                      { text: "Cancel", style: "cancel" },
-                    ]
-                  );
-                }}
-                style={styles.postMenuButton}
-              >
-                <IconSymbol name="ellipsis" size={20} color="#6b7280" />
-              </TouchableOpacity>
-            )}
+            <View style={styles.headerRight}>
+              {daysUntil >= 0 && daysUntil <= 7 && (
+                <View
+                  style={[
+                    styles.urgencyBadge,
+                    daysUntil <= 2
+                      ? styles.urgencyBadgeHigh
+                      : styles.urgencyBadgeMedium,
+                  ]}
+                >
+                  <IconSymbol
+                    name="clock.fill"
+                    size={10}
+                    color={daysUntil <= 2 ? "#ef4444" : "#f59e0b"}
+                  />
+                  <Text
+                    style={[
+                      styles.urgencyText,
+                      daysUntil <= 2
+                        ? styles.urgencyTextHigh
+                        : styles.urgencyTextMedium,
+                    ]}
+                  >
+                    {daysUntil === 0
+                      ? "Today"
+                      : daysUntil === 1
+                      ? "Tomorrow"
+                      : `${daysUntil}d`}
+                  </Text>
+                </View>
+              )}
+              {isOwnPost && (
+                <TouchableOpacity
+                  onPress={() => {
+                    Alert.alert(
+                      "Post Options",
+                      "Choose an action",
+                      [
+                        {
+                          text: "Edit",
+                          onPress: () => handleEditPost(post),
+                        },
+                        {
+                          text: "Delete",
+                          style: "destructive",
+                          onPress: () => handleDeletePost(post),
+                        },
+                        { text: "Cancel", style: "cancel" },
+                      ]
+                    );
+                  }}
+                  style={styles.postMenuButton}
+                >
+                  <IconSymbol name="ellipsis" size={20} color="#6b7280" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Post Image - Full width */}
@@ -562,7 +562,7 @@ export default function FeedScreen() {
               <Image
                 source={{ uri: post.imageUrl }}
                 style={styles.postImage}
-                resizeMode="cover"
+                resizeMode="contain"
               />
             </TouchableOpacity>
           )}
@@ -570,7 +570,10 @@ export default function FeedScreen() {
           {/* Post Content */}
           <View style={styles.postContent}>
             <View style={styles.titleRow}>
-              <Text style={styles.postTitle}>{post.title}</Text>
+              <View style={styles.titleWithAuthor}>
+                <Text style={styles.postAuthorName}>{post.userName}</Text>
+                <Text style={styles.postTitle}> {post.title}</Text>
+              </View>
             </View>
 
             <Text style={styles.postDescription}>{post.description}</Text>
@@ -579,14 +582,14 @@ export default function FeedScreen() {
             <View style={styles.eventDateTimeContainer}>
               <View style={styles.eventDateTimeItem}>
                 <View style={styles.eventIconContainer}>
-                  <IconSymbol name="calendar" size={14} color="#3b82f6" />
+                  <IconSymbol name="calendar" size={16} color="#475569" />
                 </View>
                 <Text style={styles.eventDateTimeText}>{formatPostDate(post.date)}</Text>
               </View>
               {post.startTime && post.endTime && (
                 <View style={styles.eventDateTimeItem}>
                   <View style={[styles.eventIconContainer, styles.eventTimeIconContainer]}>
-                    <IconSymbol name="clock" size={14} color="#10b981" />
+                    <IconSymbol name="clock" size={16} color="#475569" />
                   </View>
                   <Text style={styles.eventDateTimeText}>
                     {formatPostTime(post.startTime)} - {formatPostTime(post.endTime)}
@@ -605,8 +608,8 @@ export default function FeedScreen() {
             >
               <IconSymbol
                 name={hasLiked ? "heart.fill" : "heart"}
-                size={22}
-                color={hasLiked ? "#ef4444" : "#262626"}
+                size={20}
+                color={hasLiked ? "#ef4444" : "#64748b"}
               />
               {(post.likeCount || 0) > 0 && (
                 <Text style={[styles.footerActionText, hasLiked && styles.likeCountActive]}>
@@ -622,8 +625,8 @@ export default function FeedScreen() {
             >
               <IconSymbol
                 name="bubble.left.and.bubble.right"
-                size={22}
-                color="#262626"
+                size={20}
+                color="#64748b"
               />
               {(post.commentCount || 0) > 0 && (
                 <Text style={styles.footerActionText}>
@@ -1284,9 +1287,11 @@ const styles = StyleSheet.create({
   },
   postCard: {
     backgroundColor: "#fff",
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     position: "relative",
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
   },
   gradientAccent: {
     position: "absolute",
@@ -1300,70 +1305,90 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 14,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   postUserInfo: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     flex: 1,
   },
   avatarContainer: {
     position: "relative",
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#e5e7eb",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#f1f5f9",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   avatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   postUserName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#000000",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0f172a",
     letterSpacing: -0.2,
+    marginBottom: 1,
   },
   postMetaRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2,
+    marginTop: 0,
   },
   postTime: {
     fontSize: 12,
-    color: "#8e8e8e",
-    fontWeight: "400",
+    color: "#64748b",
+    fontWeight: "500",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   postMenuButton: {
     padding: 8,
     marginRight: -8,
   },
   postContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     marginBottom: 8,
-    gap: 10,
+    gap: 8,
+  },
+  titleWithAuthor: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "wrap",
+    flex: 1,
+  },
+  postAuthorName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0f172a",
+    letterSpacing: -0.2,
   },
   postTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000000",
-    lineHeight: 22,
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#0f172a",
+    lineHeight: 20,
     flex: 1,
     letterSpacing: -0.2,
   },
@@ -1374,12 +1399,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 12,
     gap: 5,
-  },
-  urgencyBadgeTopRight: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    zIndex: 10,
   },
   urgencyBadgeHigh: {
     backgroundColor: "#fee2e2",
@@ -1399,35 +1418,39 @@ const styles = StyleSheet.create({
   },
   postDescription: {
     fontSize: 14,
-    color: "#262626",
-    lineHeight: 20,
-    marginBottom: 12,
+    color: "#0f172a",
+    lineHeight: 19,
+    marginBottom: 10,
     letterSpacing: -0.1,
+    fontWeight: "400",
   },
   eventDateTimeContainer: {
     flexDirection: "column",
-    gap: 8,
-    marginTop: 4,
+    gap: 5,
+    marginTop: 0,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
   },
   eventDateTimeItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   eventIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#eff6ff",
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#f1f5f9",
     justifyContent: "center",
     alignItems: "center",
   },
   eventTimeIconContainer: {
-    backgroundColor: "#ecfdf5",
+    backgroundColor: "#f1f5f9",
   },
   eventDateTimeText: {
-    fontSize: 13,
-    color: "#262626",
+    fontSize: 12,
+    color: "#64748b",
     fontWeight: "500",
     flex: 1,
   },
@@ -1435,23 +1458,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-start",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 8,
     borderTopWidth: 1,
-    borderTopColor: "#efefef",
-    gap: 24,
+    borderTopColor: "#f1f5f9",
+    gap: 20,
   },
   footerActionButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 4,
+    gap: 5,
+    paddingVertical: 3,
   },
   footerActionText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#262626",
+    color: "#1e293b",
+    letterSpacing: -0.2,
   },
   likeCountActive: {
     color: "#262626",
@@ -1897,11 +1921,11 @@ const styles = StyleSheet.create({
   postImageContainer: {
     width: "100%",
     overflow: "hidden",
-    backgroundColor: "#000000",
+    backgroundColor: "#fff",
   },
   postImage: {
     width: "100%",
-    height: 450,
+    height: 380,
   },
   imagePickerButton: {
     flexDirection: "row",
