@@ -3,17 +3,17 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
 import {
-    addComment,
-    createPost,
-    deletePost,
-    fetchComments,
-    fetchPosts,
-    formatPostDate,
-    formatPostTime,
-    formatRelativeTime,
-    toggleLike,
-    updatePost,
-    uploadPostImage,
+  addComment,
+  createPost,
+  deletePost,
+  fetchComments,
+  fetchPosts,
+  formatPostDate,
+  formatPostTime,
+  formatRelativeTime,
+  toggleLike,
+  updatePost,
+  uploadPostImage,
 } from "@/helpers/feedHelper";
 import { Comment, Post } from "@/types/feed";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -21,18 +21,18 @@ import * as ImagePicker from "expo-image-picker";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Modal,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -466,6 +466,38 @@ export default function FeedScreen() {
     return (
       <View key={post.id} style={styles.postCardWrapper}>
         <View style={styles.postCard}>
+            {/* Days Left Badge - Top Right */}
+            {daysUntil >= 0 && daysUntil <= 7 && (
+              <View
+                style={[
+                  styles.urgencyBadge,
+                  styles.urgencyBadgeTopRight,
+                  daysUntil <= 2
+                    ? styles.urgencyBadgeHigh
+                    : styles.urgencyBadgeMedium,
+                ]}
+              >
+                <IconSymbol
+                  name="clock.fill"
+                  size={10}
+                  color={daysUntil <= 2 ? "#ef4444" : "#f59e0b"}
+                />
+                <Text
+                  style={[
+                    styles.urgencyText,
+                    daysUntil <= 2
+                      ? styles.urgencyTextHigh
+                      : styles.urgencyTextMedium,
+                  ]}
+                >
+                  {daysUntil === 0
+                    ? "Today"
+                    : daysUntil === 1
+                    ? "Tomorrow"
+                    : `${daysUntil}d`}
+                </Text>
+              </View>
+            )}
             {/* Post Header */}
           <View style={styles.postHeader}>
             <View style={styles.postUserInfo}>
@@ -539,36 +571,6 @@ export default function FeedScreen() {
           <View style={styles.postContent}>
             <View style={styles.titleRow}>
               <Text style={styles.postTitle}>{post.title}</Text>
-              {daysUntil >= 0 && daysUntil <= 7 && (
-                <View
-                  style={[
-                    styles.urgencyBadge,
-                    daysUntil <= 2
-                      ? styles.urgencyBadgeHigh
-                      : styles.urgencyBadgeMedium,
-                  ]}
-                >
-                  <IconSymbol
-                    name="clock.fill"
-                    size={10}
-                    color={daysUntil <= 2 ? "#ef4444" : "#f59e0b"}
-                  />
-                  <Text
-                    style={[
-                      styles.urgencyText,
-                      daysUntil <= 2
-                        ? styles.urgencyTextHigh
-                        : styles.urgencyTextMedium,
-                    ]}
-                  >
-                    {daysUntil === 0
-                      ? "Today"
-                      : daysUntil === 1
-                      ? "Tomorrow"
-                      : `${daysUntil}d`}
-                  </Text>
-                </View>
-              )}
             </View>
 
             <Text style={styles.postDescription}>{post.description}</Text>
@@ -1130,21 +1132,6 @@ export default function FeedScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <View style={styles.headerTitleContainer}>
-            <View style={styles.headerIconContainer}>
-              <IconSymbol size={32} name="list.bullet.rectangle.fill" color="#fff" />
-            </View>
-            <View>
-              <Text style={styles.headerTitle}>Events Feed</Text>
-              <Text style={styles.headerSubtitle}>
-                {posts.length} {posts.length === 1 ? "event" : "events"} shared
-              </Text>
-            </View>
-          </View>
-        </View>
-
         {/* Posts Feed */}
         {posts.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -1387,6 +1374,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 12,
     gap: 5,
+  },
+  urgencyBadgeTopRight: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 10,
   },
   urgencyBadgeHigh: {
     backgroundColor: "#fee2e2",

@@ -223,6 +223,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="feedback"
+          options={{
+            href: null, 
+          }}
+        />
+        <Tabs.Screen
           name="PocketDuty"
           options={{
             href: null, 

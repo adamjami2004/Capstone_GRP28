@@ -55,12 +55,12 @@ export default function HomeScreen() {
   const SHAREPOINT_URL = "https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2/_layouts/15/AccessDenied.aspx?Source=https%3A%2F%2Fuottawa%2Esharepoint%2Ecom%2Fteams%2FResidenceLifeTeam2%2F%5Flayouts%2F15%2Fdoc2%2Easpx%3Fsourcedoc%3D%257B58C84AFA%2DA36B%2D46E6%2DA0D2%2DA2CEA378A8CA%257D%26file%3DRideau%5F2025%2D2026%5FBuliding%2520Duty%2520Calendar%2Exlsx%26action%3Ddefault%26mobileredirect%3Dtrue&correlation=9aecdea1%2Df0e0%2Da000%2Ded06%2D1369933a2b39&Type=web&SiteId=7bbde7e7%2D94ca%2D48bf%2Db83e%2D604f7ecb6d0e";
 
   const quickAccessItems = [
-    { id: 1, title: "Duty Calendar", icon: "calendar", color: "#8b5cf6", route: "/(tabs)/calendar" },
     { id: 2, title: "To-Do List", icon: "checklist", color: "#3b82f6", route: "/(tabs)/todo-list" },
     { id: 3, title: "Status", icon: "chart.bar.fill", color: "#ec4899", route: "/(tabs)/status" },
     { id: 4, title: "Time Off", icon: "clock.fill", color: "#ef4444" ,  route: "/(tabs)/timeOff"},
     { id: 5, title: "Sway Resources", icon: "play.tv.fill", color: "#10b981", externalUrl: SHAREPOINT_URL },
     { id: 6, title: "Room Reservations", icon: "door.left.hand.open", color: "#f59e0b", route: "/(tabs)/reservations" },
+    { id: 7, title: "Feedback", icon: "bubble.left.and.bubble.right.fill", color: "#6366f1", route: "/(tabs)/feedback" },
   ];
 
   return (

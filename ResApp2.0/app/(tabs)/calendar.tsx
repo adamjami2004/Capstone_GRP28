@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react"
-import { StyleSheet, View, TouchableOpacity, Modal, ScrollView, Pressable, Text, TextInput, Alert } from "react-native"
 import { ThemedView } from "@/components/themed-view"
 import { IconSymbol } from "@/components/ui/icon-symbol"
-import { collection, addDoc, onSnapshot, query, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore"
-import { db, auth } from "@/firebase"
+import { auth, db } from "@/firebase"
 import { onAuthStateChanged } from "firebase/auth"
+import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, query, updateDoc } from "firebase/firestore"
+import { useEffect, useState } from "react"
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 
 type Event = {
   id: string
@@ -377,12 +377,9 @@ export default function TabTwoScreen() {
         <View style={styles.headerSection}>
           <View style={styles.headerTitleContainer}>
             <View style={styles.headerIconContainer}>
-              <IconSymbol size={32} name="calendar" color="#fff" />
+              <IconSymbol size={26} name="calendar" color="#3b82f6" />
             </View>
-            <View>
-              <Text style={styles.headerTitle}>Calendar</Text>
-              <Text style={styles.headerSubtitle}>Your schedule and events</Text>
-            </View>
+            <Text style={styles.headerTitle}>Calendar</Text>
           </View>
         </View>
 
@@ -552,44 +549,40 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 16,
+    paddingTop: 20,
+    paddingBottom: 12,
     backgroundColor: "#fff",
   },
   headerTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 8,
   },
   headerIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#3b82f6",
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#eff6ff",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#000",
-    marginBottom: 2,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 0,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 13,
+    color: "#64748b",
+    marginTop: 2,
   },
   monthCard: {
     backgroundColor: "#fff",
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginTop: 20,
     borderRadius: 20,
-    padding: 20,
+    padding: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -615,14 +608,15 @@ const styles = StyleSheet.create({
   },
   dayHeaders: {
     flexDirection: "row",
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingVertical: 4,
   },
   dayHeaderCell: {
     flex: 1,
     alignItems: "center",
   },
   dayHeaderText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
     color: "#9ca3af",
     textTransform: "uppercase",
@@ -637,8 +631,9 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 10,
-    marginBottom: 4,
+    borderRadius: 12,
+    marginBottom: 6,
+    minHeight: 50,
   },
   todayCell: {
     backgroundColor: "#f3f4f6",
@@ -646,7 +641,7 @@ const styles = StyleSheet.create({
     borderColor: "#000",
   },
   dayText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "500",
     color: "#374151",
   },

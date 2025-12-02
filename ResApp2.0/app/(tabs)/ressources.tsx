@@ -180,7 +180,7 @@ export default function Resources() {
       >
         <View style={styles.categoryHeader}>
           <View style={styles.categoryIconContainer}>
-            <IconSymbol name={categoryIcon as any} size={24} color="#fff" />
+            <IconSymbol name={categoryIcon as any} size={20} color="#fff" />
           </View>
           <View style={styles.categoryInfo}>
             <Text style={styles.categoryTitle}>{item.title}</Text>
@@ -188,7 +188,7 @@ export default function Resources() {
               {item.subcategories.length} {item.subcategories.length === 1 ? "topic" : "topics"} • {totalQuestions} {totalQuestions === 1 ? "question" : "questions"}
             </Text>
           </View>
-          <IconSymbol name="chevron.right" size={18} color="#94a3b8" />
+          <IconSymbol name="chevron.right" size={16} color="#94a3b8" />
         </View>
       </TouchableOpacity>
     );
@@ -212,14 +212,9 @@ export default function Resources() {
         <View style={styles.headerSection}>
           <View style={styles.headerTitleContainer}>
             <View style={styles.headerIconContainer}>
-              <IconSymbol size={32} name="book.fill" color="#fff" />
+              <IconSymbol size={26} name="book.fill" color="#3b82f6" />
             </View>
-            <View>
-              <Text style={styles.headerTitle}>Resources</Text>
-              <Text style={styles.headerSubtitle}>
-                {categories.length} {categories.length === 1 ? "category" : "categories"} available
-              </Text>
-            </View>
+            <Text style={styles.headerTitle}>Resources</Text>
           </View>
         </View>
 
@@ -265,37 +260,33 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 16,
+    paddingTop: 20,
+    paddingBottom: 12,
     backgroundColor: "#fff",
   },
   headerTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 8,
   },
   headerIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#6366f1",
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#eff6ff",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#6366f1",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#000",
-    marginBottom: 2,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 0,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 13,
+    color: "#64748b",
+    marginTop: 2,
   },
   emptyContainer: {
     alignItems: "center",
@@ -325,13 +316,13 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     paddingHorizontal: 20,
-    gap: 12,
+    gap: 10,
     paddingBottom: 24,
     paddingTop: 8,
   },
   categoryCard: {
     backgroundColor: "#fff",
-    borderRadius: 20,
+    borderRadius: 14,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -344,13 +335,13 @@ const styles = StyleSheet.create({
   categoryHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 18,
-    gap: 14,
+    padding: 14,
+    gap: 12,
   },
   categoryIconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
@@ -359,14 +350,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
     color: "#0f172a",
-    marginBottom: 4,
+    marginBottom: 3,
     letterSpacing: -0.3,
   },
   categorySubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#64748b",
     fontWeight: "500",
   },

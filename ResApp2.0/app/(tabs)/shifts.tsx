@@ -12,12 +12,12 @@ import {
   takeCover,
 } from "@/helpers/shiftCoverHelper";
 import {
-  canApproveCover,
   CoverRequest,
+  Shift,
+  canApproveCover,
   formatShiftDate,
   getCurrentMonth,
   getMonthOptions,
-  Shift,
 } from "@/types/shift";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -181,7 +181,7 @@ export default function ShiftsScreen() {
       snapshot.forEach((doc) => {
         const data = doc.data() as CoverRequest;
         if (data.requestedByEmail !== email) {
-          covers.push({ id: doc.id, ...data });
+          covers.push({ ...data, id: doc.id });
         }
       });
       setAvailableCovers(covers);
@@ -418,12 +418,9 @@ export default function ShiftsScreen() {
       <View style={styles.headerSection}>
         <View style={styles.headerTitleContainer}>
           <View style={styles.headerIconContainer}>
-            <IconSymbol size={32} name="calendar" color="#fff" />
+            <IconSymbol size={26} name="calendar" color="#3b82f6" />
           </View>
-          <View>
-            <Text style={styles.headerTitle}>Shift Management</Text>
-            <Text style={styles.headerSubtitle}>Manage shifts and covers</Text>
-          </View>
+          <Text style={styles.headerTitle}>Shift Management</Text>
         </View>
 
         {/* Main Tabs */}
@@ -1199,23 +1196,18 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   
   // Header
-  headerSection: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16, backgroundColor: "#fff" },
-  headerTitleContainer: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 16 },
+  headerSection: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12, backgroundColor: "#fff" },
+  headerTitleContainer: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
   headerIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#3b82f6",
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#eff6ff",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: "#000", marginBottom: 2 },
-  headerSubtitle: { fontSize: 14, color: "#666" },
+  headerTitle: { fontSize: 20, fontWeight: "600", color: "#1e293b", marginBottom: 0 },
+  headerSubtitle: { fontSize: 13, color: "#64748b", marginTop: 2 },
   
   // Main Tabs
   mainTabSelector: {
@@ -1692,13 +1684,11 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 20,
   },
-  datePickerButton: {
+  datePickerCancelButton: {
     flex: 1,
     padding: 14,
     borderRadius: 10,
     alignItems: "center",
-  },
-  datePickerCancelButton: {
     backgroundColor: "#f3f4f6",
   },
   datePickerConfirmButton: {
