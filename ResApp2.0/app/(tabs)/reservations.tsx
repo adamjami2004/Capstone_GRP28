@@ -10,6 +10,7 @@ import {
   fetchUserReservations,
   formatDate,
   formatTime,
+  getTodayDateString,
   updateReservation,
 } from "@/helpers/reservationHelper";
 import { Reservation, Room } from "@/types/reservation";
@@ -87,9 +88,8 @@ export default function ReservationsScreen() {
 
   const handleBookRoom = (room: Room) => {
     setSelectedRoom(room);
-    // Set default date to today
-    const today = new Date();
-    const dateString = today.toISOString().split("T")[0];
+    // Set default date to today using local timezone
+    const dateString = getTodayDateString();
     setBookingDate(dateString);
     setStartTime("");
     setEndTime("");
