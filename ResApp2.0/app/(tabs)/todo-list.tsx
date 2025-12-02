@@ -3,17 +3,17 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
 import {
-  createPersonalTodo,
+    createPersonalTodo,
     createTodo,
-  deletePersonalTodo,
+    deletePersonalTodo,
     deleteTodo,
     fetchPersonalTodos,
     fetchResidenceTodos,
     formatDueDate,
     getPriorityColor,
-  togglePersonalTodoCompletion,
+    togglePersonalTodoCompletion,
     toggleTodoCompletion,
-  updatePersonalTodo,
+    updatePersonalTodo,
     updateTodo,
 } from "@/helpers/todoHelper";
 import { TodoItem } from "@/types/todo";
@@ -339,6 +339,19 @@ export default function TodoListScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerSection}>
+        <View style={styles.headerTitleContainer}>
+          <View style={styles.headerIconContainer}>
+            <IconSymbol size={32} name="checklist" color="#fff" />
+          </View>
+          <View>
+            <Text style={styles.headerTitle}>To-Do List</Text>
+            <Text style={styles.headerSubtitle}>Manage your tasks</Text>
+          </View>
+        </View>
+      </View>
+
       {/* Tabs */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity
@@ -637,6 +650,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8f9fa",
     paddingBottom: 100,
+  },
+  headerSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+    backgroundColor: "#fff",
+  },
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  headerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#000",
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#666",
   },
   tabsContainer: {
     flexDirection: "row",

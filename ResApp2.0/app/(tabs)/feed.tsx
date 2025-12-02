@@ -2,37 +2,37 @@
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
 import {
-  addComment,
-  createPost,
-  deletePost,
-  fetchComments,
-  fetchPosts,
-  formatPostDate,
-  formatPostTime,
-  formatRelativeTime,
-  toggleLike,
-  updatePost,
-  uploadPostImage,
+    addComment,
+    createPost,
+    deletePost,
+    fetchComments,
+    fetchPosts,
+    formatPostDate,
+    formatPostTime,
+    formatRelativeTime,
+    toggleLike,
+    updatePost,
+    uploadPostImage,
 } from "@/helpers/feedHelper";
 import { Comment, Post } from "@/types/feed";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -1131,12 +1131,17 @@ export default function FeedScreen() {
         }
       >
         {/* Header Section */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Events Feed</Text>
-            <Text style={styles.headerSubtitle}>
-              {posts.length} {posts.length === 1 ? "event" : "events"} shared
-            </Text>
+        <View style={styles.headerSection}>
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.headerIconContainer}>
+              <IconSymbol size={32} name="list.bullet.rectangle.fill" color="#fff" />
+            </View>
+            <View>
+              <Text style={styles.headerTitle}>Events Feed</Text>
+              <Text style={styles.headerSubtitle}>
+                {posts.length} {posts.length === 1 ? "event" : "events"} shared
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -1204,25 +1209,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6b7280",
   },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#efefef",
-    backgroundColor: "#ffffff",
+  headerSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+    backgroundColor: "#fff",
+  },
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  headerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "700",
-    color: "#000000",
-    letterSpacing: -0.5,
+    color: "#000",
+    marginBottom: 2,
   },
   headerSubtitle: {
-    fontSize: 13,
-    color: "#8e8e8e",
-    marginTop: 4,
-    fontWeight: "400",
+    fontSize: 14,
+    color: "#666",
   },
   emptyContainer: {
     alignItems: "center",

@@ -374,9 +374,16 @@ export default function TabTwoScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Your Schedule</Text>
-          <Text style={styles.name}>Calendar</Text>
+        <View style={styles.headerSection}>
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.headerIconContainer}>
+              <IconSymbol size={32} name="calendar" color="#fff" />
+            </View>
+            <View>
+              <Text style={styles.headerTitle}>Calendar</Text>
+              <Text style={styles.headerSubtitle}>Your schedule and events</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.monthCard}>
@@ -543,25 +550,39 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9fafb",
     paddingBottom: 100,
   },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 28,
+  headerSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
   },
-  greeting: {
-    fontSize: 15,
-    color: "#6b7280",
-    marginBottom: 4,
-    fontWeight: "500",
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
   },
-  name: {
-    fontSize: 34,
+  headerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  headerTitle: {
+    fontSize: 28,
     fontWeight: "700",
-    color: "#111827",
-    letterSpacing: -0.5,
+    color: "#000",
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#666",
   },
   monthCard: {
     backgroundColor: "#fff",
@@ -642,6 +663,83 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
+  },
+  upcomingSection: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    gap: 12,
+  },
+  upcomingCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    borderLeftWidth: 4,
+  },
+  upcomingIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  upcomingContent: {
+    flex: 1,
+  },
+  upcomingLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  upcomingTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  upcomingMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  upcomingDate: {
+    fontSize: 13,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  upcomingTime: {
+    fontSize: 13,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  noUpcomingCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  noUpcomingText: {
+    fontSize: 14,
+    color: "#9ca3af",
+    marginTop: 12,
+    fontWeight: "500",
   },
   modalOverlay: {
     flex: 1,
