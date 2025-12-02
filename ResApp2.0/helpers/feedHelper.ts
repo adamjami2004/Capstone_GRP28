@@ -1,5 +1,5 @@
 import { auth, db, storage } from "@/firebase";
-import { CreatePostData, Post, UpdatePostData } from "@/types/feed";
+import { Comment, CreatePostData, Post, UpdatePostData } from "@/types/feed";
 import {
   addDoc,
   collection,
@@ -145,16 +145,22 @@ export const fetchPosts = async (): Promise<Post[]> => {
     const querySnapshot = await getDocs(q);
 
     const posts: Post[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
+    for (const docSnapshot of querySnapshot.docs) {
+      const data = docSnapshot.data();
+      
+      // Fetch comments for each post
+      const comments = await fetchComments(docSnapshot.id);
+      
       posts.push({
-        id: doc.id,
+        id: docSnapshot.id,
         ...data,
         // Ensure likes array exists for backward compatibility
         likes: data.likes || [],
         likeCount: data.likeCount || 0,
+        comments: comments,
+        commentCount: data.commentCount || comments.length,
       } as Post);
-    });
+    }
 
     return posts;
   } catch (error) {
@@ -393,5 +399,94 @@ export const toggleLike = async (
       success: false,
       error: error instanceof Error ? error.message : "Failed to toggle like",
     };
+  }
+};
+
+/**
+ * Add a comment to a post
+ */
+export const addComment = async (
+  postId: string,
+  text: string
+): Promise<{ success: boolean; error?: string; commentId?: string }> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    if (!text.trim()) {
+      return { success: false, error: "Comment text cannot be empty" };
+    }
+
+    // Get user's name and profile picture from Users collection
+    const usersRef = collection(db, "Users");
+    const userQuery = query(usersRef, where("uid", "==", user.uid));
+    const userSnapshot = await getDocs(userQuery);
+
+    let userName = "Anonymous";
+    let userProfilePicture = "";
+    if (!userSnapshot.empty) {
+      const userData = userSnapshot.docs[0].data();
+      userName = `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.Email || "Anonymous";
+      userProfilePicture = userData.profilePicture || userData.profilePictureUrl || "";
+    }
+
+    // Add comment to subcollection
+    const commentsRef = collection(db, "Posts", postId, "comments");
+    const commentData = {
+      userId: user.uid,
+      userName,
+      userProfilePicture,
+      text: text.trim(),
+      createdAt: Date.now(),
+    };
+
+    const commentRef = await addDoc(commentsRef, commentData);
+
+    // Update comment count on post
+    const postRef = doc(db, "Posts", postId);
+    const postDoc = await getDocs(query(collection(db, "Posts"), where("__name__", "==", postId)));
+    let currentCommentCount = 0;
+    if (!postDoc.empty) {
+      const postData = postDoc.docs[0].data();
+      currentCommentCount = postData.commentCount || 0;
+    }
+
+    await updateDoc(postRef, {
+      commentCount: (currentCommentCount || 0) + 1,
+    });
+
+    return { success: true, commentId: commentRef.id };
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to add comment",
+    };
+  }
+};
+
+/**
+ * Fetch comments for a post
+ */
+export const fetchComments = async (postId: string): Promise<Comment[]> => {
+  try {
+    const commentsRef = collection(db, "Posts", postId, "comments");
+    const q = query(commentsRef, orderBy("createdAt", "asc"));
+    const querySnapshot = await getDocs(q);
+
+    const comments: Comment[] = [];
+    querySnapshot.forEach((doc) => {
+      comments.push({
+        id: doc.id,
+        ...doc.data(),
+      } as Comment);
+    });
+
+    return comments;
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    return [];
   }
 };

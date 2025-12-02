@@ -168,7 +168,7 @@ export function CustomHeader() {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => router.push("/(tabs)/settings")}>
             <IconSymbol size={24} name="gearshape.fill" color="#000" />
           </TouchableOpacity>
 

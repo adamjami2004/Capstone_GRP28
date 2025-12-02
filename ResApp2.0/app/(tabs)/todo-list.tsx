@@ -4,31 +4,31 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
 import {
   createPersonalTodo,
-  createTodo,
+    createTodo,
   deletePersonalTodo,
-  deleteTodo,
-  fetchPersonalTodos,
-  fetchResidenceTodos,
-  formatDueDate,
-  getPriorityColor,
+    deleteTodo,
+    fetchPersonalTodos,
+    fetchResidenceTodos,
+    formatDueDate,
+    getPriorityColor,
   togglePersonalTodoCompletion,
-  toggleTodoCompletion,
+    toggleTodoCompletion,
   updatePersonalTodo,
-  updateTodo,
+    updateTodo,
 } from "@/helpers/todoHelper";
 import { TodoItem } from "@/types/todo";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 type TabType = "personal" | "residence";
@@ -67,27 +67,27 @@ export default function TodoListScreen() {
       // Try to fetch residence todos if user is authenticated
       const user = auth.currentUser;
       if (user) {
-        // Fetch user details to get residence
-        const usersRef = collection(db, "Users");
-        const userQuery = query(usersRef, where("uid", "==", user.uid));
-        const userSnapshot = await getDocs(userQuery);
-        
-        let residenceId = "";
-        let residenceName = "";
-        
-        if (!userSnapshot.empty) {
-          const userData = userSnapshot.docs[0].data();
-          residenceId = userData.residence || userData.Residence || "";
-          residenceName = userData.residence || userData.Residence || "Residence";
-        }
+      // Fetch user details to get residence
+      const usersRef = collection(db, "Users");
+      const userQuery = query(usersRef, where("uid", "==", user.uid));
+      const userSnapshot = await getDocs(userQuery);
+      
+      let residenceId = "";
+      let residenceName = "";
+      
+      if (!userSnapshot.empty) {
+        const userData = userSnapshot.docs[0].data();
+        residenceId = userData.residence || userData.Residence || "";
+        residenceName = userData.residence || userData.Residence || "Residence";
+      }
 
-        setUserResidence(residenceId);
-        setUserResidenceName(residenceName);
+      setUserResidence(residenceId);
+      setUserResidenceName(residenceName);
 
-        // Fetch residence todos if user has a residence
-        if (residenceId) {
-          const residenceTodosData = await fetchResidenceTodos(residenceId);
-          setResidenceTodos(residenceTodosData);
+      // Fetch residence todos if user has a residence
+      if (residenceId) {
+        const residenceTodosData = await fetchResidenceTodos(residenceId);
+        setResidenceTodos(residenceTodosData);
         }
       }
     } catch (error) {
@@ -129,10 +129,10 @@ export default function TodoListScreen() {
       if (isResidenceTodo && userResidence) {
         // Create residence todo in Firebase (requires auth)
         result = await createTodo({
-          title,
-          description,
-          priority,
-          dueDate: dueDate || undefined,
+        title,
+        description,
+        priority,
+        dueDate: dueDate || undefined,
           residenceId: userResidence,
         });
       } else {
@@ -142,7 +142,7 @@ export default function TodoListScreen() {
           description,
           priority,
           dueDate: dueDate || undefined,
-        });
+      });
       }
 
       if (result.success) {
@@ -180,11 +180,11 @@ export default function TodoListScreen() {
             dueDate: dueDate || undefined,
           })
         : await updateTodo(selectedTodo.id, {
-            title,
-            description,
-            priority,
-            dueDate: dueDate || undefined,
-          });
+        title,
+        description,
+        priority,
+        dueDate: dueDate || undefined,
+      });
 
       if (result.success) {
         Alert.alert("Success", "Todo updated successfully!");

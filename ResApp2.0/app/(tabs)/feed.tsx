@@ -1,10 +1,13 @@
 "use client";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { auth } from "@/firebase";
+import { auth, db } from "@/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import {
+  addComment,
   createPost,
   deletePost,
+  fetchComments,
   fetchPosts,
   formatPostDate,
   formatPostTime,
@@ -13,7 +16,7 @@ import {
   updatePost,
   uploadPostImage,
 } from "@/helpers/feedHelper";
-import { Post } from "@/types/feed";
+import { Comment, Post } from "@/types/feed";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
@@ -31,8 +34,10 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function FeedScreen() {
+  const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,10 +57,41 @@ export default function FeedScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  
+  // Comment state
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [selectedPostForComments, setSelectedPostForComments] = useState<Post | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [currentUserProfilePicture, setCurrentUserProfilePicture] = useState<string>("");
+  
+  // Image viewer state
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string>("");
 
   useEffect(() => {
     loadPosts();
+    loadCurrentUserProfile();
   }, []);
+
+  const loadCurrentUserProfile = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const usersRef = collection(db, "Users");
+      const q = query(usersRef, where("uid", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
+        const profilePicture = userData.profilePicture || userData.profilePictureUrl || "";
+        setCurrentUserProfilePicture(profilePicture);
+      }
+    } catch (error) {
+      console.error("Error loading current user profile:", error);
+    }
+  };
 
   const loadPosts = async () => {
     try {
@@ -191,6 +227,71 @@ export default function FeedScreen() {
       }
     } catch (error) {
       console.error("Error toggling like:", error);
+    }
+  };
+
+  const openCommentsModal = async (post: Post) => {
+    setSelectedPostForComments(post);
+    setCommentModalVisible(true);
+    setCommentText("");
+    
+    // Fetch comments if not already loaded
+    if (!post.comments || post.comments.length === 0) {
+      const fetchedComments = await fetchComments(post.id);
+      setPosts((prevPosts) =>
+        prevPosts.map((p) =>
+          p.id === post.id
+            ? { ...p, comments: fetchedComments, commentCount: fetchedComments.length }
+            : p
+        )
+      );
+      // Update selected post with comments
+      setSelectedPostForComments({ ...post, comments: fetchedComments, commentCount: fetchedComments.length });
+    }
+  };
+
+  const closeCommentsModal = () => {
+    setCommentModalVisible(false);
+    setSelectedPostForComments(null);
+    setCommentText("");
+  };
+
+  const handleSubmitComment = async () => {
+    if (!selectedPostForComments || !commentText.trim()) return;
+
+    setSubmittingComment(true);
+    try {
+      const result = await addComment(selectedPostForComments.id, commentText);
+      if (result.success) {
+        // Refresh comments
+        const fetchedComments = await fetchComments(selectedPostForComments.id);
+        setPosts((prevPosts) =>
+          prevPosts.map((p) =>
+            p.id === selectedPostForComments.id
+              ? {
+                  ...p,
+                  comments: fetchedComments,
+                  commentCount: fetchedComments.length,
+                }
+              : p
+          )
+        );
+        // Update selected post with new comments
+        setSelectedPostForComments({
+          ...selectedPostForComments,
+          comments: fetchedComments,
+          commentCount: fetchedComments.length,
+        });
+        // Clear comment text
+        setCommentText("");
+      } else {
+        Alert.alert("Error", result.error || "Failed to add comment");
+      }
+    } catch (error) {
+      console.error("Error submitting comment:", error);
+      Alert.alert("Error", "An unexpected error occurred");
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
@@ -422,48 +523,45 @@ export default function FeedScreen() {
 
           <Text style={styles.postDescription}>{post.description}</Text>
 
-          {/* Post Image */}
+          {/* Post Image - Made taller */}
           {post.imageUrl && (
-            <View style={styles.postImageContainer}>
+            <TouchableOpacity
+              style={styles.postImageContainer}
+              onPress={() => {
+                setSelectedImageUrl(post.imageUrl || "");
+                setImageViewerVisible(true);
+              }}
+              activeOpacity={0.9}
+            >
               <Image
                 source={{ uri: post.imageUrl }}
                 style={styles.postImage}
                 resizeMode="cover"
               />
-            </View>
+            </TouchableOpacity>
           )}
 
-          {/* Event Date & Time Card */}
-          <View style={styles.eventDateCard}>
-            <View style={styles.dateIconContainer}>
-              <IconSymbol name="calendar" size={18} color="#3b82f6" />
+          {/* Event Date & Time - Compact inline display */}
+          <View style={styles.eventDateTimeRow}>
+            <View style={styles.eventDateTimeItem}>
+              <IconSymbol name="calendar" size={12} color="#6b7280" />
+              <Text style={styles.eventDateTimeText}>{formatPostDate(post.date)}</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.dateLabel}>Event Date</Text>
-              <Text style={styles.dateValue}>{formatPostDate(post.date)}</Text>
-            </View>
-          </View>
-
-          {/* Event Time Card */}
-          {post.startTime && post.endTime && (
-            <View style={styles.eventDateCard}>
-              <View style={styles.dateIconContainer}>
-                <IconSymbol name="clock" size={18} color="#3b82f6" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.dateLabel}>Event Time</Text>
-                <Text style={styles.dateValue}>
+            {post.startTime && post.endTime && (
+              <View style={styles.eventDateTimeItem}>
+                <IconSymbol name="clock" size={12} color="#6b7280" />
+                <Text style={styles.eventDateTimeText}>
                   {formatPostTime(post.startTime)} - {formatPostTime(post.endTime)}
                 </Text>
               </View>
-            </View>
-          )}
+            )}
+          </View>
         </View>
 
-        {/* Post Footer with Like Button */}
+        {/* Post Footer with Like and Comment Buttons */}
         <View style={styles.postFooter}>
           <TouchableOpacity
-            style={[styles.likeButton, hasLiked && styles.likeButtonActive]}
+            style={[styles.actionButton, hasLiked && styles.likeButtonActive]}
             onPress={() => handleLikePress(post)}
             activeOpacity={0.7}
           >
@@ -472,12 +570,192 @@ export default function FeedScreen() {
               size={18}
               color={hasLiked ? "#ef4444" : "#9ca3af"}
             />
-            <Text style={[styles.likeCount, hasLiked && styles.likeCountActive]}>
+            <Text style={[styles.actionButtonText, hasLiked && styles.likeCountActive]}>
               {(post.likeCount || 0) > 0 ? post.likeCount : "Like"}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => openCommentsModal(post)}
+            activeOpacity={0.7}
+          >
+            <IconSymbol
+              name="bubble.left.and.bubble.right"
+              size={18}
+              color="#9ca3af"
+            />
+            <Text style={styles.actionButtonText}>
+              {(post.commentCount || 0) > 0 ? post.commentCount : "Comment"}
             </Text>
           </TouchableOpacity>
         </View>
       </View>
+    );
+  };
+
+  const renderImageViewer = () => {
+    if (!selectedImageUrl) return null;
+
+    return (
+      <Modal
+        visible={imageViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setImageViewerVisible(false);
+          setSelectedImageUrl("");
+        }}
+      >
+        <TouchableOpacity
+          style={styles.imageViewerOverlay}
+          activeOpacity={1}
+          onPress={() => {
+            setImageViewerVisible(false);
+            setSelectedImageUrl("");
+          }}
+        >
+          <View style={styles.imageViewerContainer}>
+            <Image
+              source={{ uri: selectedImageUrl }}
+              style={styles.imageViewerImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={[styles.imageViewerCloseButton, { top: insets.top + 20 }]}
+              onPress={() => {
+                setImageViewerVisible(false);
+                setSelectedImageUrl("");
+              }}
+            >
+              <IconSymbol name="xmark.circle.fill" size={32} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    );
+  };
+
+  const renderCommentsModal = () => {
+    if (!selectedPostForComments) return null;
+
+    return (
+      <Modal
+        visible={commentModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closeCommentsModal}
+      >
+        <View style={styles.commentsModalOverlay}>
+          <TouchableOpacity
+            style={styles.commentsModalBackdrop}
+            activeOpacity={1}
+            onPress={closeCommentsModal}
+          />
+          <View style={[styles.commentsModalContent, { paddingBottom: insets.bottom }]}>
+            {/* Modal Header */}
+            <View style={styles.commentsModalHeader}>
+              <View style={styles.commentsModalHeaderLine} />
+              <View style={styles.commentsModalHeaderContent}>
+                <Text style={styles.commentsModalTitle}>Comments</Text>
+                <TouchableOpacity
+                  onPress={closeCommentsModal}
+                  style={styles.commentsModalCloseButton}
+                >
+                  <IconSymbol name="xmark" size={20} color="#111827" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Comments List */}
+            <ScrollView
+              style={styles.commentsModalList}
+              showsVerticalScrollIndicator={true}
+            >
+              {selectedPostForComments.comments && selectedPostForComments.comments.length > 0 ? (
+                selectedPostForComments.comments.map((comment: Comment) => (
+                  <View key={comment.id} style={styles.commentItem}>
+                    <View style={styles.commentAvatar}>
+                      {comment.userProfilePicture ? (
+                        <Image
+                          source={{ uri: comment.userProfilePicture }}
+                          style={styles.commentAvatarImage}
+                        />
+                      ) : (
+                        <View style={styles.commentAvatarPlaceholder}>
+                          <IconSymbol name="person.fill" size={14} color="#fff" />
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.commentContent}>
+                      <View style={styles.commentHeader}>
+                        <Text style={styles.commentUserName}>{comment.userName}</Text>
+                        <Text style={styles.commentTime}>
+                          {formatRelativeTime(comment.createdAt)}
+                        </Text>
+                      </View>
+                      <Text style={styles.commentText}>{comment.text}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.commentsEmptyContainer}>
+                  <IconSymbol
+                    name="bubble.left.and.bubble.right"
+                    size={40}
+                    color="#d1d5db"
+                  />
+                  <Text style={styles.commentsEmptyText}>No comments yet</Text>
+                  <Text style={styles.commentsEmptySubtext}>
+                    Be the first to comment!
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Comment Input - Fixed at bottom */}
+            <View style={[styles.commentInputContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+              <View style={styles.commentInputAvatar}>
+                {currentUserProfilePicture ? (
+                  <Image
+                    source={{ uri: currentUserProfilePicture }}
+                    style={styles.commentInputAvatarImage}
+                  />
+                ) : (
+                  <View style={styles.commentInputAvatarPlaceholder}>
+                    <IconSymbol name="person.fill" size={12} color="#fff" />
+                  </View>
+                )}
+              </View>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Add a comment..."
+                placeholderTextColor="#9ca3af"
+                value={commentText}
+                onChangeText={setCommentText}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.commentSubmitButton,
+                  (!commentText.trim() || submittingComment) &&
+                    styles.commentSubmitButtonDisabled,
+                ]}
+                onPress={handleSubmitComment}
+                disabled={!commentText.trim() || submittingComment}
+                activeOpacity={0.7}
+              >
+                {submittingComment ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <IconSymbol name="arrow.up.circle.fill" size={20} color="#fff" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     );
   };
 
@@ -799,6 +1077,12 @@ export default function FeedScreen() {
       {/* Create/Edit Modal */}
       {renderPostModal(false)}
       {renderPostModal(true)}
+
+      {/* Comments Modal */}
+      {renderCommentsModal()}
+
+      {/* Full Screen Image Viewer */}
+      {renderImageViewer()}
     </ThemedView>
   );
 }
@@ -1019,69 +1303,237 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 16,
   },
-  eventDateCard: {
+  eventDateTimeRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
-    padding: 12,
-    borderRadius: 12,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    marginBottom: 8,
+    gap: 16,
+    marginBottom: 12,
+    paddingVertical: 8,
   },
-  dateIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: "#dbeafe",
-    justifyContent: "center",
+  eventDateTimeItem: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 6,
   },
-  dateLabel: {
-    fontSize: 11,
+  eventDateTimeText: {
+    fontSize: 12,
     color: "#6b7280",
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  dateValue: {
-    fontSize: 14,
-    color: "#111827",
-    fontWeight: "700",
-    marginTop: 2,
+    fontWeight: "500",
   },
   postFooter: {
     flexDirection: "row",
     justifyContent: "flex-start",
     alignItems: "center",
     paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
+    gap: 12,
   },
-  likeButton: {
+  actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     backgroundColor: "#f9fafb",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
   },
   likeButtonActive: {
     backgroundColor: "#fee2e2",
-    borderColor: "#fecaca",
   },
-  likeCount: {
-    fontSize: 14,
-    fontWeight: "700",
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
     color: "#6b7280",
   },
   likeCountActive: {
     color: "#ef4444",
+  },
+  commentsModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  commentsModalBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  commentsModalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    maxHeight: "90%",
+    minHeight: "60%",
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+  commentsModalHeader: {
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    backgroundColor: "#fff",
+  },
+  commentsModalHeaderLine: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#d1d5db",
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 12,
+  },
+  commentsModalHeaderContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  commentsModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  commentsModalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f3f4f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  commentsModalList: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  commentsEmptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  commentsEmptyText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#6b7280",
+    marginTop: 12,
+  },
+  commentsEmptySubtext: {
+    fontSize: 14,
+    color: "#9ca3af",
+    marginTop: 4,
+  },
+  commentItem: {
+    flexDirection: "row",
+    marginBottom: 20,
+    gap: 12,
+    paddingVertical: 4,
+  },
+  commentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#3b82f6",
+  },
+  commentAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  commentAvatarPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  commentContent: {
+    flex: 1,
+    paddingTop: 2,
+  },
+  commentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  commentUserName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  commentTime: {
+    fontSize: 12,
+    color: "#9ca3af",
+  },
+  commentText: {
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 20,
+  },
+  commentInputContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+    backgroundColor: "#fff",
+    minHeight: 70,
+  },
+  commentInputAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#3b82f6",
+    marginBottom: 4,
+  },
+  commentInputAvatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  commentInputAvatarPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#111827",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    maxHeight: 100,
+    minHeight: 40,
+  },
+  commentSubmitButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  commentSubmitButtonDisabled: {
+    backgroundColor: "#d1d5db",
+    opacity: 0.5,
   },
   fab: {
     position: "absolute",
@@ -1268,14 +1720,14 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   postImageContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#f3f4f6",
   },
   postImage: {
     width: "100%",
-    height: 200,
+    height: 350,
   },
   imagePickerButton: {
     flexDirection: "row",
@@ -1328,5 +1780,32 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+  },
+  imageViewerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageViewerContainer: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  imageViewerImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imageViewerCloseButton: {
+    position: "absolute",
+    right: 20,
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });
