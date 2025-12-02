@@ -64,6 +64,7 @@ export default function FeedScreen() {
   const [commentText, setCommentText] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
   const [currentUserProfilePicture, setCurrentUserProfilePicture] = useState<string>("");
+  const [replyingToComment, setReplyingToComment] = useState<Comment | null>(null);
   
   // Image viewer state
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -254,6 +255,17 @@ export default function FeedScreen() {
     setCommentModalVisible(false);
     setSelectedPostForComments(null);
     setCommentText("");
+    setReplyingToComment(null);
+  };
+
+  const handleReplyToComment = (comment: Comment) => {
+    setReplyingToComment(comment);
+    setCommentText(`@${comment.userName} `);
+  };
+
+  const cancelReply = () => {
+    setReplyingToComment(null);
+    setCommentText("");
   };
 
   const handleSubmitComment = async () => {
@@ -261,7 +273,21 @@ export default function FeedScreen() {
 
     setSubmittingComment(true);
     try {
-      const result = await addComment(selectedPostForComments.id, commentText);
+      const textToSubmit = replyingToComment 
+        ? commentText.replace(`@${replyingToComment.userName} `, "").trim()
+        : commentText.trim();
+      
+      if (!textToSubmit) {
+        Alert.alert("Error", "Please enter a comment");
+        setSubmittingComment(false);
+        return;
+      }
+
+      const result = await addComment(
+        selectedPostForComments.id, 
+        textToSubmit,
+        replyingToComment?.id
+      );
       if (result.success) {
         // Refresh comments
         const fetchedComments = await fetchComments(selectedPostForComments.id);
@@ -282,8 +308,9 @@ export default function FeedScreen() {
           comments: fetchedComments,
           commentCount: fetchedComments.length,
         });
-        // Clear comment text
+        // Clear comment text and reply state
         setCommentText("");
+        setReplyingToComment(null);
       } else {
         Alert.alert("Error", result.error || "Failed to add comment");
       }
@@ -437,93 +464,60 @@ export default function FeedScreen() {
     );
 
     return (
-      <View key={post.id} style={styles.postCard}>
-        {/* Gradient Background Accent */}
-        <View style={styles.gradientAccent} />
-
-        {/* Post Header */}
-        <View style={styles.postHeader}>
-          <View style={styles.postUserInfo}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                {post.userProfilePicture ? (
-                  <Image
-                    source={{ uri: post.userProfilePicture }}
-                    style={styles.avatarImage}
-                  />
-                ) : (
-                  <IconSymbol name="person.fill" size={20} color="#fff" />
-                )}
+      <View key={post.id} style={styles.postCardWrapper}>
+        <View style={styles.postCard}>
+            {/* Post Header */}
+          <View style={styles.postHeader}>
+            <View style={styles.postUserInfo}>
+              <View style={styles.avatarContainer}>
+                <View style={styles.avatar}>
+                  {post.userProfilePicture ? (
+                    <Image
+                      source={{ uri: post.userProfilePicture }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <IconSymbol name="person.fill" size={20} color="#fff" />
+                  )}
+                </View>
               </View>
-              <View style={styles.activeIndicator} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.postUserName}>{post.userName}</Text>
-              <View style={styles.postMetaRow}>
-                <IconSymbol name="clock.fill" size={11} color="#9ca3af" />
-                <Text style={styles.postTime}>
-                  {formatRelativeTime(post.createdAt)}
-                </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.postUserName}>{post.userName}</Text>
+                <View style={styles.postMetaRow}>
+                  <Text style={styles.postTime}>
+                    {formatRelativeTime(post.createdAt)}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
-          {isOwnPost && (
-            <View style={styles.postActions}>
+            {isOwnPost && (
               <TouchableOpacity
-                onPress={() => handleEditPost(post)}
-                style={styles.actionButton}
+                onPress={() => {
+                  Alert.alert(
+                    "Post Options",
+                    "Choose an action",
+                    [
+                      {
+                        text: "Edit",
+                        onPress: () => handleEditPost(post),
+                      },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: () => handleDeletePost(post),
+                      },
+                      { text: "Cancel", style: "cancel" },
+                    ]
+                  );
+                }}
+                style={styles.postMenuButton}
               >
-                <IconSymbol name="pencil" size={16} color="#3b82f6" />
+                <IconSymbol name="ellipsis" size={20} color="#6b7280" />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleDeletePost(post)}
-                style={[styles.actionButton, { backgroundColor: "#fee2e2" }]}
-              >
-                <IconSymbol name="trash" size={16} color="#ef4444" />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* Post Content */}
-        <View style={styles.postContent}>
-          <View style={styles.titleRow}>
-            <Text style={styles.postTitle}>{post.title}</Text>
-            {daysUntil >= 0 && daysUntil <= 7 && (
-              <View
-                style={[
-                  styles.urgencyBadge,
-                  daysUntil <= 2
-                    ? styles.urgencyBadgeHigh
-                    : styles.urgencyBadgeMedium,
-                ]}
-              >
-                <IconSymbol
-                  name="clock.fill"
-                  size={10}
-                  color={daysUntil <= 2 ? "#ef4444" : "#f59e0b"}
-                />
-                <Text
-                  style={[
-                    styles.urgencyText,
-                    daysUntil <= 2
-                      ? styles.urgencyTextHigh
-                      : styles.urgencyTextMedium,
-                  ]}
-                >
-                  {daysUntil === 0
-                    ? "Today"
-                    : daysUntil === 1
-                    ? "Tomorrow"
-                    : `${daysUntil}d`}
-                </Text>
-              </View>
             )}
           </View>
 
-          <Text style={styles.postDescription}>{post.description}</Text>
-
-          {/* Post Image - Made taller */}
+          {/* Post Image - Full width */}
           {post.imageUrl && (
             <TouchableOpacity
               style={styles.postImageContainer}
@@ -531,7 +525,7 @@ export default function FeedScreen() {
                 setSelectedImageUrl(post.imageUrl || "");
                 setImageViewerVisible(true);
               }}
-              activeOpacity={0.9}
+              activeOpacity={0.95}
             >
               <Image
                 source={{ uri: post.imageUrl }}
@@ -541,54 +535,101 @@ export default function FeedScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Event Date & Time - Compact inline display */}
-          <View style={styles.eventDateTimeRow}>
-            <View style={styles.eventDateTimeItem}>
-              <IconSymbol name="calendar" size={12} color="#6b7280" />
-              <Text style={styles.eventDateTimeText}>{formatPostDate(post.date)}</Text>
+          {/* Post Content */}
+          <View style={styles.postContent}>
+            <View style={styles.titleRow}>
+              <Text style={styles.postTitle}>{post.title}</Text>
+              {daysUntil >= 0 && daysUntil <= 7 && (
+                <View
+                  style={[
+                    styles.urgencyBadge,
+                    daysUntil <= 2
+                      ? styles.urgencyBadgeHigh
+                      : styles.urgencyBadgeMedium,
+                  ]}
+                >
+                  <IconSymbol
+                    name="clock.fill"
+                    size={10}
+                    color={daysUntil <= 2 ? "#ef4444" : "#f59e0b"}
+                  />
+                  <Text
+                    style={[
+                      styles.urgencyText,
+                      daysUntil <= 2
+                        ? styles.urgencyTextHigh
+                        : styles.urgencyTextMedium,
+                    ]}
+                  >
+                    {daysUntil === 0
+                      ? "Today"
+                      : daysUntil === 1
+                      ? "Tomorrow"
+                      : `${daysUntil}d`}
+                  </Text>
+                </View>
+              )}
             </View>
-            {post.startTime && post.endTime && (
-              <View style={styles.eventDateTimeItem}>
-                <IconSymbol name="clock" size={12} color="#6b7280" />
-                <Text style={styles.eventDateTimeText}>
-                  {formatPostTime(post.startTime)} - {formatPostTime(post.endTime)}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
 
-        {/* Post Footer with Like and Comment Buttons */}
-        <View style={styles.postFooter}>
-          <TouchableOpacity
-            style={[styles.actionButton, hasLiked && styles.likeButtonActive]}
-            onPress={() => handleLikePress(post)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol
-              name={hasLiked ? "heart.fill" : "heart"}
-              size={18}
-              color={hasLiked ? "#ef4444" : "#9ca3af"}
-            />
-            <Text style={[styles.actionButtonText, hasLiked && styles.likeCountActive]}>
-              {(post.likeCount || 0) > 0 ? post.likeCount : "Like"}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => openCommentsModal(post)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol
-              name="bubble.left.and.bubble.right"
-              size={18}
-              color="#9ca3af"
-            />
-            <Text style={styles.actionButtonText}>
-              {(post.commentCount || 0) > 0 ? post.commentCount : "Comment"}
-            </Text>
-          </TouchableOpacity>
+            <Text style={styles.postDescription}>{post.description}</Text>
+
+            {/* Event Date & Time - Better layout */}
+            <View style={styles.eventDateTimeContainer}>
+              <View style={styles.eventDateTimeItem}>
+                <View style={styles.eventIconContainer}>
+                  <IconSymbol name="calendar" size={14} color="#3b82f6" />
+                </View>
+                <Text style={styles.eventDateTimeText}>{formatPostDate(post.date)}</Text>
+              </View>
+              {post.startTime && post.endTime && (
+                <View style={styles.eventDateTimeItem}>
+                  <View style={[styles.eventIconContainer, styles.eventTimeIconContainer]}>
+                    <IconSymbol name="clock" size={14} color="#10b981" />
+                  </View>
+                  <Text style={styles.eventDateTimeText}>
+                    {formatPostTime(post.startTime)} - {formatPostTime(post.endTime)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Post Footer with Like and Comment Buttons */}
+          <View style={styles.postFooter}>
+            <TouchableOpacity
+              style={styles.footerActionButton}
+              onPress={() => handleLikePress(post)}
+              activeOpacity={0.7}
+            >
+              <IconSymbol
+                name={hasLiked ? "heart.fill" : "heart"}
+                size={22}
+                color={hasLiked ? "#ef4444" : "#262626"}
+              />
+              {(post.likeCount || 0) > 0 && (
+                <Text style={[styles.footerActionText, hasLiked && styles.likeCountActive]}>
+                  {(post.likeCount || 0).toLocaleString()}
+                </Text>
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.footerActionButton}
+              onPress={() => openCommentsModal(post)}
+              activeOpacity={0.7}
+            >
+              <IconSymbol
+                name="bubble.left.and.bubble.right"
+                size={22}
+                color="#262626"
+              />
+              {(post.commentCount || 0) > 0 && (
+                <Text style={styles.footerActionText}>
+                  {(post.commentCount || 0).toLocaleString()}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -674,28 +715,72 @@ export default function FeedScreen() {
             >
               {selectedPostForComments.comments && selectedPostForComments.comments.length > 0 ? (
                 selectedPostForComments.comments.map((comment: Comment) => (
-                  <View key={comment.id} style={styles.commentItem}>
-                    <View style={styles.commentAvatar}>
-                      {comment.userProfilePicture ? (
-                        <Image
-                          source={{ uri: comment.userProfilePicture }}
-                          style={styles.commentAvatarImage}
-                        />
-                      ) : (
-                        <View style={styles.commentAvatarPlaceholder}>
-                          <IconSymbol name="person.fill" size={14} color="#fff" />
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.commentContent}>
-                      <View style={styles.commentHeader}>
-                        <Text style={styles.commentUserName}>{comment.userName}</Text>
-                        <Text style={styles.commentTime}>
-                          {formatRelativeTime(comment.createdAt)}
-                        </Text>
+                  <View key={comment.id}>
+                    <View style={styles.commentItem}>
+                      <View style={styles.commentAvatar}>
+                        {comment.userProfilePicture ? (
+                          <Image
+                            source={{ uri: comment.userProfilePicture }}
+                            style={styles.commentAvatarImage}
+                          />
+                        ) : (
+                          <View style={styles.commentAvatarPlaceholder}>
+                            <IconSymbol name="person.fill" size={14} color="#fff" />
+                          </View>
+                        )}
                       </View>
-                      <Text style={styles.commentText}>{comment.text}</Text>
+                      <View style={styles.commentContent}>
+                        <View style={styles.commentHeader}>
+                          <Text style={styles.commentUserName}>{comment.userName}</Text>
+                          <Text style={styles.commentTime}>
+                            {formatRelativeTime(comment.createdAt)}
+                          </Text>
+                        </View>
+                        <Text style={styles.commentText}>{comment.text}</Text>
+                        <TouchableOpacity
+                          onPress={() => handleReplyToComment(comment)}
+                          style={styles.replyButton}
+                        >
+                          <Text style={styles.replyButtonText}>Reply</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
+                    {/* Nested Replies */}
+                    {comment.replies && comment.replies.length > 0 && (
+                      <View style={styles.repliesContainer}>
+                        {comment.replies.map((reply: Comment) => (
+                          <View key={reply.id} style={styles.replyItem}>
+                            <View style={styles.replyAvatar}>
+                              {reply.userProfilePicture ? (
+                                <Image
+                                  source={{ uri: reply.userProfilePicture }}
+                                  style={styles.replyAvatarImage}
+                                />
+                              ) : (
+                                <View style={styles.replyAvatarPlaceholder}>
+                                  <IconSymbol name="person.fill" size={12} color="#fff" />
+                                </View>
+                              )}
+                            </View>
+                            <View style={styles.replyContent}>
+                              <View style={styles.commentHeader}>
+                                <Text style={styles.commentUserName}>{reply.userName}</Text>
+                                <Text style={styles.commentTime}>
+                                  {formatRelativeTime(reply.createdAt)}
+                                </Text>
+                              </View>
+                              <Text style={styles.commentText}>{reply.text}</Text>
+                              <TouchableOpacity
+                                onPress={() => handleReplyToComment(comment)}
+                                style={styles.replyButton}
+                              >
+                                <Text style={styles.replyButtonText}>Reply</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
                   </View>
                 ))
               ) : (
@@ -713,6 +798,20 @@ export default function FeedScreen() {
               )}
             </ScrollView>
 
+            {/* Reply Indicator */}
+            {replyingToComment && (
+              <View style={styles.replyIndicator}>
+                <View style={styles.replyIndicatorContent}>
+                  <Text style={styles.replyIndicatorText}>
+                    Replying to <Text style={styles.replyIndicatorName}>{replyingToComment.userName}</Text>
+                  </Text>
+                  <TouchableOpacity onPress={cancelReply} style={styles.replyIndicatorClose}>
+                    <IconSymbol name="xmark" size={16} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
             {/* Comment Input - Fixed at bottom */}
             <View style={[styles.commentInputContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
               <View style={styles.commentInputAvatar}>
@@ -729,7 +828,7 @@ export default function FeedScreen() {
               </View>
               <TextInput
                 style={styles.commentInput}
-                placeholder="Add a comment..."
+                placeholder={replyingToComment ? `Reply to ${replyingToComment.userName}...` : "Add a comment..."}
                 placeholderTextColor="#9ca3af"
                 value={commentText}
                 onChangeText={setCommentText}
@@ -1090,7 +1189,7 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#ffffff",
   },
   scrollView: {
     flex: 1,
@@ -1106,23 +1205,24 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#efefef",
+    backgroundColor: "#ffffff",
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#111827",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#000000",
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: "#6b7280",
-    marginTop: 2,
+    color: "#8e8e8e",
+    marginTop: 4,
+    fontWeight: "400",
   },
   emptyContainer: {
     alignItems: "center",
@@ -1164,19 +1264,22 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   postsContainer: {
-    paddingHorizontal: 20,
     paddingBottom: 120,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  postCardWrapper: {
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   postCard: {
     backgroundColor: "#fff",
-    borderRadius: 20,
-    marginBottom: 20,
+    borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
     position: "relative",
   },
   gradientAccent: {
@@ -1190,9 +1293,10 @@ const styles = StyleSheet.create({
   postHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    padding: 18,
-    paddingBottom: 12,
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
   },
   postUserInfo: {
     flexDirection: "row",
@@ -1204,82 +1308,66 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#3b82f6",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#e5e7eb",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
   },
   avatarImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  activeIndicator: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#10b981",
-    borderWidth: 2,
-    borderColor: "#fff",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   postUserName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#000000",
+    letterSpacing: -0.2,
   },
   postMetaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
     marginTop: 2,
   },
   postTime: {
     fontSize: 12,
-    color: "#9ca3af",
+    color: "#8e8e8e",
+    fontWeight: "400",
   },
-  postActions: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  actionButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "#dbeafe",
-    justifyContent: "center",
-    alignItems: "center",
+  postMenuButton: {
+    padding: 8,
+    marginRight: -8,
   },
   postContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 8,
     gap: 10,
   },
   postTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#111827",
-    lineHeight: 26,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000000",
+    lineHeight: 22,
     flex: 1,
+    letterSpacing: -0.2,
   },
   urgencyBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 5,
   },
   urgencyBadgeHigh: {
     backgroundColor: "#fee2e2",
@@ -1298,57 +1386,63 @@ const styles = StyleSheet.create({
     color: "#f59e0b",
   },
   postDescription: {
-    fontSize: 15,
-    color: "#4b5563",
-    lineHeight: 22,
-    marginBottom: 16,
-  },
-  eventDateTimeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
+    fontSize: 14,
+    color: "#262626",
+    lineHeight: 20,
     marginBottom: 12,
-    paddingVertical: 8,
+    letterSpacing: -0.1,
+  },
+  eventDateTimeContainer: {
+    flexDirection: "column",
+    gap: 8,
+    marginTop: 4,
   },
   eventDateTimeItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 10,
+  },
+  eventIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#eff6ff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  eventTimeIconContainer: {
+    backgroundColor: "#ecfdf5",
   },
   eventDateTimeText: {
-    fontSize: 12,
-    color: "#6b7280",
+    fontSize: 13,
+    color: "#262626",
     fontWeight: "500",
+    flex: 1,
   },
   postFooter: {
     flexDirection: "row",
     justifyContent: "flex-start",
     alignItems: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
     borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
-    gap: 12,
+    borderTopColor: "#efefef",
+    gap: 24,
   },
-  actionButton: {
+  footerActionButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: "#f9fafb",
+    paddingVertical: 4,
   },
-  likeButtonActive: {
-    backgroundColor: "#fee2e2",
-  },
-  actionButtonText: {
-    fontSize: 13,
+  footerActionText: {
+    fontSize: 14,
     fontWeight: "600",
-    color: "#6b7280",
+    color: "#262626",
   },
   likeCountActive: {
-    color: "#ef4444",
+    color: "#262626",
   },
   commentsModalOverlay: {
     flex: 1,
@@ -1476,6 +1570,75 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#374151",
     lineHeight: 20,
+  },
+  replyButton: {
+    marginTop: 6,
+    paddingVertical: 4,
+  },
+  replyButtonText: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "600",
+  },
+  repliesContainer: {
+    marginLeft: 48,
+    marginTop: 8,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: "#e5e7eb",
+  },
+  replyItem: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 10,
+    paddingVertical: 4,
+  },
+  replyAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "#3b82f6",
+  },
+  replyAvatarImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  replyAvatarPlaceholder: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  replyContent: {
+    flex: 1,
+    paddingTop: 2,
+  },
+  replyIndicator: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#f9fafb",
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  replyIndicatorContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  replyIndicatorText: {
+    fontSize: 13,
+    color: "#6b7280",
+  },
+  replyIndicatorName: {
+    fontWeight: "600",
+    color: "#111827",
+  },
+  replyIndicatorClose: {
+    padding: 4,
   },
   commentInputContainer: {
     flexDirection: "row",
@@ -1720,14 +1883,13 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   postImageContainer: {
-    marginBottom: 12,
-    borderRadius: 12,
+    width: "100%",
     overflow: "hidden",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#000000",
   },
   postImage: {
     width: "100%",
-    height: 350,
+    height: 450,
   },
   imagePickerButton: {
     flexDirection: "row",

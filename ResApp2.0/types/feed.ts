@@ -1,10 +1,14 @@
 export interface Comment {
   id: string;
+  postId: string;
   userId: string;
   userName: string;
   userProfilePicture?: string;
   text: string;
   createdAt: number; // timestamp
+  parentCommentId?: string; // For nested comments/replies
+  replies?: Comment[]; // Nested replies
+  replyCount?: number; // Number of replies
 }
 
 export interface Post {

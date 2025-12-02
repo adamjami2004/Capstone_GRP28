@@ -5,6 +5,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   query,
@@ -407,7 +408,8 @@ export const toggleLike = async (
  */
 export const addComment = async (
   postId: string,
-  text: string
+  text: string,
+  parentCommentId?: string
 ): Promise<{ success: boolean; error?: string; commentId?: string }> => {
   try {
     const user = auth.currentUser;
@@ -434,7 +436,8 @@ export const addComment = async (
 
     // Add comment to subcollection
     const commentsRef = collection(db, "Posts", postId, "comments");
-    const commentData = {
+    const commentData: any = {
+      postId,
       userId: user.uid,
       userName,
       userProfilePicture,
@@ -442,20 +445,53 @@ export const addComment = async (
       createdAt: Date.now(),
     };
 
-    const commentRef = await addDoc(commentsRef, commentData);
-
-    // Update comment count on post
-    const postRef = doc(db, "Posts", postId);
-    const postDoc = await getDocs(query(collection(db, "Posts"), where("__name__", "==", postId)));
-    let currentCommentCount = 0;
-    if (!postDoc.empty) {
-      const postData = postDoc.docs[0].data();
-      currentCommentCount = postData.commentCount || 0;
+    // If it's a reply, add parentCommentId
+    if (parentCommentId) {
+      commentData.parentCommentId = parentCommentId;
     }
 
-    await updateDoc(postRef, {
-      commentCount: (currentCommentCount || 0) + 1,
-    });
+    const commentRef = await addDoc(commentsRef, commentData);
+
+    // Update comment count on post (only for top-level comments)
+    if (!parentCommentId) {
+      const postRef = doc(db, "Posts", postId);
+      const postDoc = await getDoc(postRef);
+      let currentCommentCount = 0;
+      if (postDoc.exists()) {
+        const postData = postDoc.data();
+        currentCommentCount = postData.commentCount || 0;
+      }
+
+      await updateDoc(postRef, {
+        commentCount: (currentCommentCount || 0) + 1,
+      });
+    } else {
+      // Update reply count on parent comment
+      const parentCommentRef = doc(db, "Posts", postId, "comments", parentCommentId);
+      const parentCommentDoc = await getDoc(parentCommentRef);
+      let currentReplyCount = 0;
+      if (parentCommentDoc.exists()) {
+        const parentData = parentCommentDoc.data();
+        currentReplyCount = parentData.replyCount || 0;
+      }
+
+      await updateDoc(parentCommentRef, {
+        replyCount: (currentReplyCount || 0) + 1,
+      });
+      
+      // Also update the post comment count for replies
+      const postRef = doc(db, "Posts", postId);
+      const postDoc = await getDoc(postRef);
+      let currentCommentCount = 0;
+      if (postDoc.exists()) {
+        const postData = postDoc.data();
+        currentCommentCount = postData.commentCount || 0;
+      }
+
+      await updateDoc(postRef, {
+        commentCount: (currentCommentCount || 0) + 1,
+      });
+    }
 
     return { success: true, commentId: commentRef.id };
   } catch (error) {
@@ -468,7 +504,7 @@ export const addComment = async (
 };
 
 /**
- * Fetch comments for a post
+ * Fetch comments for a post (including nested replies)
  */
 export const fetchComments = async (postId: string): Promise<Comment[]> => {
   try {
@@ -476,15 +512,41 @@ export const fetchComments = async (postId: string): Promise<Comment[]> => {
     const q = query(commentsRef, orderBy("createdAt", "asc"));
     const querySnapshot = await getDocs(q);
 
-    const comments: Comment[] = [];
+    const allComments: Comment[] = [];
     querySnapshot.forEach((doc) => {
-      comments.push({
+      allComments.push({
         id: doc.id,
+        postId,
         ...doc.data(),
+        replies: [],
+        replyCount: doc.data().replyCount || 0,
       } as Comment);
     });
 
-    return comments;
+    // Separate top-level comments and replies
+    const topLevelComments: Comment[] = [];
+    const repliesMap = new Map<string, Comment[]>();
+
+    allComments.forEach((comment) => {
+      if (comment.parentCommentId) {
+        // This is a reply
+        if (!repliesMap.has(comment.parentCommentId)) {
+          repliesMap.set(comment.parentCommentId, []);
+        }
+        repliesMap.get(comment.parentCommentId)!.push(comment);
+      } else {
+        // This is a top-level comment
+        topLevelComments.push(comment);
+      }
+    });
+
+    // Attach replies to their parent comments
+    topLevelComments.forEach((comment) => {
+      const replies = repliesMap.get(comment.id) || [];
+      comment.replies = replies.sort((a, b) => a.createdAt - b.createdAt);
+    });
+
+    return topLevelComments;
   } catch (error) {
     console.error("Error fetching comments:", error);
     return [];

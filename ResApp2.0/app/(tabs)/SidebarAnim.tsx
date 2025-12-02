@@ -19,8 +19,6 @@ export default function Sidebar({ visible, onClose }: SidebarProps) {
     { id: 1, name: "SharePoint", icon: "folder.fill", externalUrl: SHAREPOINT_URL },
     { id: 2, name: "Room Reservations", icon: "calendar", route: "/reservations" },
     { id: 3, name: "News", icon: "star.fill" , route: "/announcements"},
-    { id: 4, name: "Documents", icon: "doc.fill" , route: "/PocketDuty"},
-    { id: 5, name: "Community", icon: "person.3.fill", route: "/PocketDuty" },
     { id: 6, name: "Settings", icon: "gearshape.fill", route: "/settings" },
   ]
 
