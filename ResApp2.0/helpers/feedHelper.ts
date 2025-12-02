@@ -110,6 +110,8 @@ export const createPost = async (
       title: data.title,
       description: data.description,
       date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       likes: [],
@@ -225,6 +227,16 @@ export const updatePost = async (
       updateData.date = data.date;
     }
 
+    // Update startTime if provided
+    if (data.startTime !== undefined) {
+      updateData.startTime = data.startTime;
+    }
+
+    // Update endTime if provided
+    if (data.endTime !== undefined) {
+      updateData.endTime = data.endTime;
+    }
+
     // Update imageUrl if provided (only add to update if it has a value)
     if (data.imageUrl !== undefined) {
       if (data.imageUrl) {
@@ -301,6 +313,23 @@ export const formatPostDate = (dateString: string): string => {
     return date.toLocaleDateString("en-US", options);
   } catch (error) {
     return dateString;
+  }
+};
+
+/**
+ * Format time for display (e.g., "2:30 PM")
+ */
+export const formatPostTime = (timeString: string): string => {
+  try {
+    const date = new Date(timeString);
+    const options: Intl.DateTimeFormatOptions = {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    };
+    return date.toLocaleTimeString("en-US", options);
+  } catch (error) {
+    return timeString;
   }
 };
 

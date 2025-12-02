@@ -7,6 +7,7 @@ import {
   deletePost,
   fetchPosts,
   formatPostDate,
+  formatPostTime,
   formatRelativeTime,
   toggleLike,
   updatePost,
@@ -19,7 +20,6 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   Image,
   Modal,
   Platform,
@@ -29,7 +29,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 export default function FeedScreen() {
@@ -44,7 +44,11 @@ export default function FeedScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -76,6 +80,15 @@ export default function FeedScreen() {
     setTitle("");
     setDescription("");
     setDate(new Date());
+    // Set default start time to current time rounded to next hour
+    const defaultStart = new Date();
+    defaultStart.setMinutes(0, 0, 0);
+    defaultStart.setHours(defaultStart.getHours() + 1);
+    setStartTime(defaultStart);
+    // Set default end time to 1 hour after start
+    const defaultEnd = new Date(defaultStart);
+    defaultEnd.setHours(defaultEnd.getHours() + 1);
+    setEndTime(defaultEnd);
     setSelectedImage(null);
     setShowCreateModal(true);
   };
@@ -85,6 +98,8 @@ export default function FeedScreen() {
     setTitle(post.title);
     setDescription(post.description);
     setDate(new Date(post.date));
+    setStartTime(post.startTime ? new Date(post.startTime) : new Date());
+    setEndTime(post.endTime ? new Date(post.endTime) : new Date());
     setSelectedImage(post.imageUrl || null);
     setShowEditModal(true);
   };
@@ -199,6 +214,8 @@ export default function FeedScreen() {
         title: title.trim(),
         description: description.trim(),
         date: date.toISOString(),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
       });
 
       if (!result.success) {
@@ -258,6 +275,8 @@ export default function FeedScreen() {
         title: title.trim(),
         description: description.trim(),
         date: date.toISOString(),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
         imageUrl,
       });
 
@@ -282,6 +301,26 @@ export default function FeedScreen() {
     setShowDatePicker(Platform.OS === "ios");
     if (selectedDate) {
       setDate(selectedDate);
+    }
+  };
+
+  const onStartTimeChange = (event: any, selectedTime?: Date) => {
+    setShowStartTimePicker(Platform.OS === "ios");
+    if (selectedTime) {
+      setStartTime(selectedTime);
+      // If end time is before start time, adjust it
+      if (selectedTime >= endTime) {
+        const newEndTime = new Date(selectedTime);
+        newEndTime.setHours(newEndTime.getHours() + 1);
+        setEndTime(newEndTime);
+      }
+    }
+  };
+
+  const onEndTimeChange = (event: any, selectedTime?: Date) => {
+    setShowEndTimePicker(Platform.OS === "ios");
+    if (selectedTime) {
+      setEndTime(selectedTime);
     }
   };
 
@@ -394,16 +433,31 @@ export default function FeedScreen() {
             </View>
           )}
 
-          {/* Event Date Card */}
+          {/* Event Date & Time Card */}
           <View style={styles.eventDateCard}>
             <View style={styles.dateIconContainer}>
               <IconSymbol name="calendar" size={18} color="#3b82f6" />
             </View>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.dateLabel}>Event Date</Text>
               <Text style={styles.dateValue}>{formatPostDate(post.date)}</Text>
             </View>
           </View>
+
+          {/* Event Time Card */}
+          {post.startTime && post.endTime && (
+            <View style={styles.eventDateCard}>
+              <View style={styles.dateIconContainer}>
+                <IconSymbol name="clock" size={18} color="#3b82f6" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dateLabel}>Event Time</Text>
+                <Text style={styles.dateValue}>
+                  {formatPostTime(post.startTime)} - {formatPostTime(post.endTime)}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Post Footer with Like Button */}
@@ -525,6 +579,86 @@ export default function FeedScreen() {
                     <TouchableOpacity
                       style={styles.datePickerDoneButton}
                       onPress={() => setShowDatePicker(false)}
+                    >
+                      <Text style={styles.datePickerDoneText}>Done</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Start Time Picker */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>
+                Start Time <Text style={styles.required}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={styles.timeButton}
+                onPress={() => setShowStartTimePicker(true)}
+              >
+                <View style={styles.timeButtonIcon}>
+                  <IconSymbol name="clock" size={18} color="#10b981" />
+                </View>
+                <Text style={styles.timeButtonText}>
+                  {formatPostTime(startTime.toISOString())}
+                </Text>
+                <IconSymbol name="chevron.right" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+              {showStartTimePicker && (
+                <View style={styles.datePickerContainer}>
+                  <DateTimePicker
+                    value={startTime}
+                    mode="time"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={onStartTimeChange}
+                    themeVariant="light"
+                    accentColor="#10b981"
+                    textColor="#111827"
+                  />
+                  {Platform.OS === "ios" && (
+                    <TouchableOpacity
+                      style={[styles.datePickerDoneButton, { backgroundColor: "#10b981" }]}
+                      onPress={() => setShowStartTimePicker(false)}
+                    >
+                      <Text style={styles.datePickerDoneText}>Done</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* End Time Picker */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>
+                End Time <Text style={styles.required}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={[styles.timeButton, styles.timeButtonEnd]}
+                onPress={() => setShowEndTimePicker(true)}
+              >
+                <View style={[styles.timeButtonIcon, styles.timeButtonIconEnd]}>
+                  <IconSymbol name="clock" size={18} color="#ef4444" />
+                </View>
+                <Text style={styles.timeButtonText}>
+                  {formatPostTime(endTime.toISOString())}
+                </Text>
+                <IconSymbol name="chevron.right" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+              {showEndTimePicker && (
+                <View style={styles.datePickerContainer}>
+                  <DateTimePicker
+                    value={endTime}
+                    mode="time"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={onEndTimeChange}
+                    themeVariant="light"
+                    accentColor="#ef4444"
+                    textColor="#111827"
+                  />
+                  {Platform.OS === "ios" && (
+                    <TouchableOpacity
+                      style={[styles.datePickerDoneButton, { backgroundColor: "#ef4444" }]}
+                      onPress={() => setShowEndTimePicker(false)}
                     >
                       <Text style={styles.datePickerDoneText}>Done</Text>
                     </TouchableOpacity>
@@ -894,6 +1028,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
+    marginBottom: 8,
   },
   dateIconContainer: {
     width: 40,
@@ -1048,6 +1183,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dateButtonText: {
+    flex: 1,
+    fontSize: 15,
+    color: "#111827",
+    fontWeight: "600",
+  },
+  timeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  timeButtonEnd: {
+    backgroundColor: "#f9fafb",
+  },
+  timeButtonIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#d1fae5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  timeButtonIconEnd: {
+    backgroundColor: "#fee2e2",
+  },
+  timeButtonText: {
     flex: 1,
     fontSize: 15,
     color: "#111827",
