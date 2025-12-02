@@ -357,8 +357,12 @@ export default function AnnouncementsScreen() {
 
         {/* Content */}
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{announcement.title}</Text>
-          <Text style={styles.cardText}>{announcement.content}</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.cardTitle}>{announcement.title}</Text>
+          </View>
+          <View style={styles.contentContainer}>
+            <Text style={styles.cardText}>{announcement.content}</Text>
+          </View>
 
           {/* Attachment - Prominent Document Card */}
           {announcement.attachmentUrl && (
@@ -634,10 +638,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#111827",
-    letterSpacing: -0.5,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1e293b",
+    letterSpacing: -0.2,
   },
   headerSubtitle: {
     fontSize: 13,
@@ -764,17 +768,32 @@ const styles = StyleSheet.create({
   cardContent: {
     paddingHorizontal: 16,
     paddingBottom: 16,
+    gap: 10,
+  },
+  titleContainer: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#111827",
-    marginBottom: 8,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0f172a",
+    letterSpacing: -0.2,
+  },
+  contentContainer: {
+    backgroundColor: "#fafbfc",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
   },
   cardText: {
-    fontSize: 15,
-    color: "#4b5563",
-    lineHeight: 22,
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 20,
   },
   documentCard: {
     flexDirection: "row",

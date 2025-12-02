@@ -1350,7 +1350,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: "#000", marginBottom: 2 },
+  headerTitle: { fontSize: 20, fontWeight: "600", color: "#1e293b", marginBottom: 0 },
   headerSubtitle: { fontSize: 14, color: "#666" },
   
   // Sections

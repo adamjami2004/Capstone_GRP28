@@ -3,13 +3,12 @@
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
-import { createShift, requestCover } from "@/helpers/shiftCoverHelper";
+import { requestCover } from "@/helpers/shiftCoverHelper";
 import {
   Shift,
   formatShiftDate,
   getCurrentMonth,
-  getMonthOptions,
-  getMonthFromDate,
+  getMonthOptions
 } from "@/types/shift";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -482,7 +481,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: "#000", marginBottom: 2 },
+  headerTitle: { fontSize: 20, fontWeight: "600", color: "#1e293b", marginBottom: 0 },
   headerSubtitle: { fontSize: 14, color: "#666" },
   monthSelector: {
     flexDirection: "row",

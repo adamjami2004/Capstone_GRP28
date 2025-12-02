@@ -37,10 +37,10 @@ export default function StatusScreen() {
     },
     {
       id: "server",
-      name: "Server",
+      name: "RC Room",
       icon: "server.rack",
       status: "up",
-      description: "Server is running",
+      description: "RC room is open",
       lastUpdated: new Date(),
       updatedBy: "Admin",
     },

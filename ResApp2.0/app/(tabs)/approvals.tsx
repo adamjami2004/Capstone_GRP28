@@ -4,28 +4,28 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
 import { approveCover, rejectCover } from "@/helpers/shiftCoverHelper";
-import { canApproveCover, CoverRequest, formatShiftDate } from "@/types/shift";
+import { CoverRequest, canApproveCover, formatShiftDate } from "@/types/shift";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-    collection,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    where,
+  collection,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function ApprovalsScreen() {
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: "#000", marginBottom: 2 },
+  headerTitle: { fontSize: 20, fontWeight: "600", color: "#1e293b", marginBottom: 0 },
   headerSubtitle: { fontSize: 14, color: "#666" },
   countBadge: {
     backgroundColor: "#f59e0b",

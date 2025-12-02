@@ -1,10 +1,10 @@
 import { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const IconSymbol = ({ name, size, color }: { name: string; size: number; color: string }) => (
@@ -209,10 +209,10 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#000",
-    marginBottom: 2,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 0,
   },
   headerSubtitle: {
     fontSize: 14,

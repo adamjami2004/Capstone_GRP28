@@ -119,7 +119,7 @@ export default function DutyPocketScreen() {
             <Text style={styles.modalSubtitle}>Scan to access the form</Text>
 
             <View style={styles.qrContainer}>
-              <Image source={require("@/assets/images/icon.png")} style={styles.qrImage} />
+              <Image source={require("@/assets/images/qr-code.png")} style={styles.qrImage} />
             </View>
 
             <TouchableOpacity style={styles.closeButton} onPress={() => setQrRoommateVisible(false)}>
@@ -136,12 +136,11 @@ export default function DutyPocketScreen() {
             <TouchableOpacity style={styles.modalCloseIcon} onPress={() => setQrGuestVisible(false)}>
               <IconSymbol name="xmark" size={16} color="#9CA3AF" />
             </TouchableOpacity>
-            
             <Text style={styles.modalTitle}>Guest Registry</Text>
             <Text style={styles.modalSubtitle}>Scan to register your guest</Text>
 
             <View style={styles.qrContainer}>
-              <Image source={require("@/assets/images/icon.png")} style={styles.qrImage} />
+              <Image source={require("@/assets/images/qr-code.png")} style={styles.qrImage} />
             </View>
 
             <TouchableOpacity style={styles.closeButton} onPress={() => setQrGuestVisible(false)}>

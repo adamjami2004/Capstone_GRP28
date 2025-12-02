@@ -3,32 +3,32 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
 import {
-    createPersonalTodo,
-    createTodo,
-    deletePersonalTodo,
-    deleteTodo,
-    fetchPersonalTodos,
-    fetchResidenceTodos,
-    formatDueDate,
-    getPriorityColor,
-    togglePersonalTodoCompletion,
-    toggleTodoCompletion,
-    updatePersonalTodo,
-    updateTodo,
+  createPersonalTodo,
+  createTodo,
+  deletePersonalTodo,
+  deleteTodo,
+  fetchPersonalTodos,
+  fetchResidenceTodos,
+  formatDueDate,
+  getPriorityColor,
+  togglePersonalTodoCompletion,
+  toggleTodoCompletion,
+  updatePersonalTodo,
+  updateTodo,
 } from "@/helpers/todoHelper";
 import { TodoItem } from "@/types/todo";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 type TabType = "personal" | "residence";
@@ -676,10 +676,10 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#000",
-    marginBottom: 2,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 0,
   },
   headerSubtitle: {
     fontSize: 14,
