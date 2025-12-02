@@ -1,10 +1,11 @@
 import { auth, db, storage } from "@/firebase";
-import { CreatePostData, Post, UpdatePostData } from "@/types/feed";
+import { Comment, CreatePostData, Post, UpdatePostData } from "@/types/feed";
 import {
   addDoc,
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   query,
@@ -145,16 +146,22 @@ export const fetchPosts = async (): Promise<Post[]> => {
     const querySnapshot = await getDocs(q);
 
     const posts: Post[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
+    for (const docSnapshot of querySnapshot.docs) {
+      const data = docSnapshot.data();
+      
+      // Fetch comments for each post
+      const comments = await fetchComments(docSnapshot.id);
+      
       posts.push({
-        id: doc.id,
+        id: docSnapshot.id,
         ...data,
         // Ensure likes array exists for backward compatibility
         likes: data.likes || [],
         likeCount: data.likeCount || 0,
+        comments: comments,
+        commentCount: data.commentCount || comments.length,
       } as Post);
-    });
+    }
 
     return posts;
   } catch (error) {
@@ -393,5 +400,155 @@ export const toggleLike = async (
       success: false,
       error: error instanceof Error ? error.message : "Failed to toggle like",
     };
+  }
+};
+
+/**
+ * Add a comment to a post
+ */
+export const addComment = async (
+  postId: string,
+  text: string,
+  parentCommentId?: string
+): Promise<{ success: boolean; error?: string; commentId?: string }> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    if (!text.trim()) {
+      return { success: false, error: "Comment text cannot be empty" };
+    }
+
+    // Get user's name and profile picture from Users collection
+    const usersRef = collection(db, "Users");
+    const userQuery = query(usersRef, where("uid", "==", user.uid));
+    const userSnapshot = await getDocs(userQuery);
+
+    let userName = "Anonymous";
+    let userProfilePicture = "";
+    if (!userSnapshot.empty) {
+      const userData = userSnapshot.docs[0].data();
+      userName = `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.Email || "Anonymous";
+      userProfilePicture = userData.profilePicture || userData.profilePictureUrl || "";
+    }
+
+    // Add comment to subcollection
+    const commentsRef = collection(db, "Posts", postId, "comments");
+    const commentData: any = {
+      postId,
+      userId: user.uid,
+      userName,
+      userProfilePicture,
+      text: text.trim(),
+      createdAt: Date.now(),
+    };
+
+    // If it's a reply, add parentCommentId
+    if (parentCommentId) {
+      commentData.parentCommentId = parentCommentId;
+    }
+
+    const commentRef = await addDoc(commentsRef, commentData);
+
+    // Update comment count on post (only for top-level comments)
+    if (!parentCommentId) {
+      const postRef = doc(db, "Posts", postId);
+      const postDoc = await getDoc(postRef);
+      let currentCommentCount = 0;
+      if (postDoc.exists()) {
+        const postData = postDoc.data();
+        currentCommentCount = postData.commentCount || 0;
+      }
+
+      await updateDoc(postRef, {
+        commentCount: (currentCommentCount || 0) + 1,
+      });
+    } else {
+      // Update reply count on parent comment
+      const parentCommentRef = doc(db, "Posts", postId, "comments", parentCommentId);
+      const parentCommentDoc = await getDoc(parentCommentRef);
+      let currentReplyCount = 0;
+      if (parentCommentDoc.exists()) {
+        const parentData = parentCommentDoc.data();
+        currentReplyCount = parentData.replyCount || 0;
+      }
+
+      await updateDoc(parentCommentRef, {
+        replyCount: (currentReplyCount || 0) + 1,
+      });
+      
+      // Also update the post comment count for replies
+      const postRef = doc(db, "Posts", postId);
+      const postDoc = await getDoc(postRef);
+      let currentCommentCount = 0;
+      if (postDoc.exists()) {
+        const postData = postDoc.data();
+        currentCommentCount = postData.commentCount || 0;
+      }
+
+      await updateDoc(postRef, {
+        commentCount: (currentCommentCount || 0) + 1,
+      });
+    }
+
+    return { success: true, commentId: commentRef.id };
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to add comment",
+    };
+  }
+};
+
+/**
+ * Fetch comments for a post (including nested replies)
+ */
+export const fetchComments = async (postId: string): Promise<Comment[]> => {
+  try {
+    const commentsRef = collection(db, "Posts", postId, "comments");
+    const q = query(commentsRef, orderBy("createdAt", "asc"));
+    const querySnapshot = await getDocs(q);
+
+    const allComments: Comment[] = [];
+    querySnapshot.forEach((doc) => {
+      allComments.push({
+        id: doc.id,
+        postId,
+        ...doc.data(),
+        replies: [],
+        replyCount: doc.data().replyCount || 0,
+      } as Comment);
+    });
+
+    // Separate top-level comments and replies
+    const topLevelComments: Comment[] = [];
+    const repliesMap = new Map<string, Comment[]>();
+
+    allComments.forEach((comment) => {
+      if (comment.parentCommentId) {
+        // This is a reply
+        if (!repliesMap.has(comment.parentCommentId)) {
+          repliesMap.set(comment.parentCommentId, []);
+        }
+        repliesMap.get(comment.parentCommentId)!.push(comment);
+      } else {
+        // This is a top-level comment
+        topLevelComments.push(comment);
+      }
+    });
+
+    // Attach replies to their parent comments
+    topLevelComments.forEach((comment) => {
+      const replies = repliesMap.get(comment.id) || [];
+      comment.replies = replies.sort((a, b) => a.createdAt - b.createdAt);
+    });
+
+    return topLevelComments;
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    return [];
   }
 };

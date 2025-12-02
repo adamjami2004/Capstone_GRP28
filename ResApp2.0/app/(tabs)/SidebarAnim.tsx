@@ -1,21 +1,35 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Animated } from "react-native"
-import { useEffect, useRef } from "react"
-import { IconSymbol } from "@/components/ui/icon-symbol"
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useRouter } from "expo-router";
+import { useEffect, useRef } from "react";
+import { Animated, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export default function Sidebar({ visible, onClose }) {
+const SHAREPOINT_URL = "https://uottawa.sharepoint.com/teams/ResidenceLifeTeam2/_layouts/15/";
+
+interface SidebarProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ visible, onClose }: SidebarProps) {
   const router = useRouter()
   const slideAnim = useRef(new Animated.Value(-320)).current
 
   const features = [
     { id: 7, name: "Duty Pocket", icon: "gearshape.fill", route: "/PocketDuty" },
-    { id: 1, name: "SharePoint", icon: "folder.fill", route: "/PocketDuty" },
-    { id: 2, name: "Room Reservations", icon: "calendar", route: "/PocketDuty" },
+    { id: 1, name: "SharePoint", icon: "folder.fill", externalUrl: SHAREPOINT_URL },
+    { id: 2, name: "Room Reservations", icon: "calendar", route: "/reservations" },
     { id: 3, name: "News", icon: "star.fill" , route: "/announcements"},
-    { id: 4, name: "Documents", icon: "doc.fill" , route: "/PocketDuty"},
-    { id: 5, name: "Community", icon: "person.3.fill", route: "/PocketDuty" },
-    { id: 6, name: "Settings", icon: "gearshape.fill", route: "/PocketDuty" },
+    { id: 6, name: "Settings", icon: "gearshape.fill", route: "/settings" },
   ]
+
+  const handlePress = (item: any) => {
+    if (item.externalUrl) {
+      Linking.openURL(item.externalUrl);
+    } else if (item.route) {
+      router.push(item.route as any);
+    }
+    onClose();
+  }
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -45,7 +59,7 @@ export default function Sidebar({ visible, onClose }) {
                 key={item.id}
                 style={styles.row}
                 activeOpacity={0.7}
-                onPress={() => item.route && router.push(item.route as any)}
+                onPress={() => handlePress(item)}
               >
                 <View style={styles.iconBox}>
                   <IconSymbol name={item.icon} size={22} color="#C76846" />

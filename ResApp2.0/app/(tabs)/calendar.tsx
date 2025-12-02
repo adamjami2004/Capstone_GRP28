@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react"
-import { StyleSheet, View, TouchableOpacity, Modal, ScrollView, Pressable, Text, TextInput, Alert } from "react-native"
 import { ThemedView } from "@/components/themed-view"
 import { IconSymbol } from "@/components/ui/icon-symbol"
-import { collection, addDoc, onSnapshot, query, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore"
-import { db, auth } from "@/firebase"
+import { auth, db } from "@/firebase"
 import { onAuthStateChanged } from "firebase/auth"
+import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, query, updateDoc } from "firebase/firestore"
+import { useEffect, useState } from "react"
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native"
 
 type Event = {
   id: string
@@ -374,9 +374,13 @@ export default function TabTwoScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Your Schedule</Text>
-          <Text style={styles.name}>Calendar</Text>
+        <View style={styles.headerSection}>
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.headerIconContainer}>
+              <IconSymbol size={26} name="calendar" color="#3b82f6" />
+            </View>
+            <Text style={styles.headerTitle}>Calendar</Text>
+          </View>
         </View>
 
         <View style={styles.monthCard}>
@@ -543,32 +547,42 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9fafb",
     paddingBottom: 100,
   },
-  header: {
-    paddingHorizontal: 24,
+  headerSection: {
+    paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 28,
+    paddingBottom: 12,
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
   },
-  greeting: {
-    fontSize: 15,
-    color: "#6b7280",
-    marginBottom: 4,
-    fontWeight: "500",
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  name: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: "#111827",
-    letterSpacing: -0.5,
+  headerIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#eff6ff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 0,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: "#64748b",
+    marginTop: 2,
   },
   monthCard: {
     backgroundColor: "#fff",
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginTop: 20,
     borderRadius: 20,
-    padding: 20,
+    padding: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -594,14 +608,15 @@ const styles = StyleSheet.create({
   },
   dayHeaders: {
     flexDirection: "row",
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingVertical: 4,
   },
   dayHeaderCell: {
     flex: 1,
     alignItems: "center",
   },
   dayHeaderText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
     color: "#9ca3af",
     textTransform: "uppercase",
@@ -616,8 +631,9 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 10,
-    marginBottom: 4,
+    borderRadius: 12,
+    marginBottom: 6,
+    minHeight: 50,
   },
   todayCell: {
     backgroundColor: "#f3f4f6",
@@ -625,7 +641,7 @@ const styles = StyleSheet.create({
     borderColor: "#000",
   },
   dayText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "500",
     color: "#374151",
   },
@@ -642,6 +658,83 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
+  },
+  upcomingSection: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    gap: 12,
+  },
+  upcomingCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    borderLeftWidth: 4,
+  },
+  upcomingIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  upcomingContent: {
+    flex: 1,
+  },
+  upcomingLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  upcomingTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  upcomingMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  upcomingDate: {
+    fontSize: 13,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  upcomingTime: {
+    fontSize: 13,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  noUpcomingCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  noUpcomingText: {
+    fontSize: 14,
+    color: "#9ca3af",
+    marginTop: 12,
+    fontWeight: "500",
   },
   modalOverlay: {
     flex: 1,

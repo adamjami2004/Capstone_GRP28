@@ -1,10 +1,10 @@
 import { useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const IconSymbol = ({ name, size, color }: { name: string; size: number; color: string }) => (
@@ -142,9 +142,16 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <Text style={styles.headerSubtitle}>Manage your preferences</Text>
+        <View style={styles.headerSection}>
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.headerIconContainer}>
+              <IconSymbol size={32} name="gearshape.fill" color="#fff" />
+            </View>
+            <View>
+              <Text style={styles.headerTitle}>Settings</Text>
+              <Text style={styles.headerSubtitle}>Manage your preferences</Text>
+            </View>
+          </View>
         </View>
 
         {settingsCategories.map((category) => (
@@ -177,27 +184,39 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 120,
   },
-  header: {
-    backgroundColor: "#fff",
-    paddingTop: 60,
-    paddingBottom: 20,
+  headerSection: {
     paddingHorizontal: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    paddingTop: 24,
+    paddingBottom: 16,
+    backgroundColor: "#fff",
+  },
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  headerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "#3b82f6",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 4,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: "700",
     color: "#000",
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#888",
+    color: "#666",
   },
   categoryContainer: {
     paddingHorizontal: 16,

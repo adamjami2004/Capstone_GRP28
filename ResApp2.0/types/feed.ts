@@ -1,3 +1,16 @@
+export interface Comment {
+  id: string;
+  postId: string;
+  userId: string;
+  userName: string;
+  userProfilePicture?: string;
+  text: string;
+  createdAt: number; // timestamp
+  parentCommentId?: string; // For nested comments/replies
+  replies?: Comment[]; // Nested replies
+  replyCount?: number; // Number of replies
+}
+
 export interface Post {
   id: string;
   userId: string;
@@ -13,6 +26,8 @@ export interface Post {
   updatedAt: number; // timestamp
   likes: string[]; // Array of user IDs who liked the post
   likeCount: number; // Total number of likes
+  comments?: Comment[]; // Array of comments
+  commentCount?: number; // Total number of comments
 }
 
 export interface CreatePostData {
