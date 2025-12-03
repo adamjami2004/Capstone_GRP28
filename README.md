@@ -92,8 +92,8 @@ npx expo doctor
 
 
 # Contributors
-| Name	             |
-| ------------------ |
-| Adam Jami          |
-| Tachfine Bihya     |
-| Abdelaziz Amine    |
+| Name	             | Role               | 
+| ------------------ | ------------------ |
+| Adam Jami          | Tech Lead          |
+| Tachfine Bihya     | Developer          |
+| Abdelaziz Amine    | Developer          |
