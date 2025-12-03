@@ -12,7 +12,7 @@ interface SidebarProps {
 
 export default function Sidebar({ visible, onClose }: SidebarProps) {
   const router = useRouter()
-  const slideAnim = useRef(new Animated.Value(-320)).current
+  const slideAnim = useRef(new Animated.Value(-380)).current
 
   const features = [
     { id: 7, name: "Duty Pocket", icon: "gearshape.fill", route: "/PocketDuty" },
@@ -33,7 +33,7 @@ export default function Sidebar({ visible, onClose }: SidebarProps) {
 
   useEffect(() => {
     Animated.timing(slideAnim, {
-      toValue: visible ? 0 : -320,
+      toValue: visible ? 0 : -380,
       duration: 280,
       useNativeDriver: true,
     }).start()
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     top: 0,
-    width: 300,
+    width: 380,
     height: "100%",
     backgroundColor: "#F8F6F3",
     paddingTop: 70,
