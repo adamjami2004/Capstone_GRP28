@@ -82,14 +82,7 @@ export default function SettingsScreen() {
         { id: "privacyPolicy", label: "Privacy Policy", icon: "document", type: "navigate" },
       ],
     },
-    {
-      title: "Appearance",
-      items: [
-        { id: "darkMode", label: "Dark Mode", icon: "moon", type: "toggle", value: settings.darkMode },
-        { id: "language", label: "Language", icon: "globe", type: "navigate", subtitle: "English" },
-        { id: "fontSize", label: "Font Size", icon: "textformat", type: "navigate", subtitle: "Medium" },
-      ],
-    },
+    
     
     
   ];
@@ -105,9 +98,9 @@ export default function SettingsScreen() {
           }
         }}
       >
-        <View style={styles.settingLeft}>
+          <View style={styles.settingLeft}>
           <View style={[styles.iconContainer, item.danger && styles.iconContainerDanger]}>
-            <IconSymbol size={10} name={item.icon} color={item.danger ? "#000" : "#000"} />
+            <IconSymbol size={10} name={item.icon} color={item.danger ? "#ef4444" : "#3b82f6"} />
           </View>
           <View style={styles.settingTextContainer}>
             <Text style={[styles.settingLabel, item.danger && styles.dangerText]}>
@@ -265,7 +258,7 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 15,
     fontWeight: "400",
-    color: "#000",
+    color: "#3b82f6",
   },
   settingSubtitle: {
     fontSize: 12,
@@ -287,7 +280,7 @@ const styles = StyleSheet.create({
     marginLeft: 58,
   },
   dangerText: {
-    color: "#000",
+    color: "#ef4444",
   },
   footer: {
     alignItems: "center",
@@ -306,7 +299,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   toggleActive: {
-    backgroundColor: "#000",
+    backgroundColor: "#3b82f6",
   },
   toggleThumb: {
     width: 20,
