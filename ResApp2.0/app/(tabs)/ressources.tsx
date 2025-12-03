@@ -49,10 +49,14 @@ type Category = {
   subcategories: Subcategory[];
 };
 
-// Icon mapping function for categories
-const getCategoryIcon = (title: string): string => {
+// Icon mapping function for categories - each gets a unique icon
+const getCategoryIcon = (title: string, index: number): string => {
   const lowerTitle = title.toLowerCase();
   
+  // Priority-based icon assignment for specific keywords
+  if (lowerTitle.includes("general") || lowerTitle.includes("overview") || lowerTitle.includes("main")) {
+    return "doc.fill";
+  }
   if (lowerTitle.includes("duty") || lowerTitle.includes("documentation")) {
     return "doc.text.fill";
   }
@@ -74,9 +78,6 @@ const getCategoryIcon = (title: string): string => {
   if (lowerTitle.includes("form") || lowerTitle.includes("template")) {
     return "doc.fill";
   }
-  if (lowerTitle.includes("resource") || lowerTitle.includes("library") || lowerTitle.includes("archive")) {
-    return "books.vertical.fill";
-  }
   if (lowerTitle.includes("calendar") || lowerTitle.includes("schedule") || lowerTitle.includes("event")) {
     return "calendar.fill";
   }
@@ -90,8 +91,37 @@ const getCategoryIcon = (title: string): string => {
     return "calendar.badge.clock";
   }
   
-  // Default icon
-  return "book.fill";
+  // Assign unique icons based on index for remaining categories
+  const iconSet = [
+    "square.grid.2x2.fill",
+    "book.fill",
+    "folder.fill",
+    "paperclip.fill",
+    "square.stack.fill",
+    "books.vertical.fill",
+    "doc.text.fill",
+    "doc.on.doc.fill",
+    "list.bullet.rectangle.fill",
+    "graduationcap.fill",
+    "questionmark.circle.fill",
+    "person.2.fill",
+    "calendar.fill",
+    "clock.fill",
+    "megaphone.fill",
+    "calendar.badge.clock",
+    "bookmark.fill",
+    "tag.fill",
+    "star.fill",
+    "bell.fill",
+    "gear.fill"
+  ];
+  
+  return iconSet[index % iconSet.length];
+};
+
+// Color mapping function for categories - same light blue for all
+const getCategoryColor = (index: number): string => {
+  return "#60a5fa"; // Light blue for all categories
 };
 
 export default function Resources() {
@@ -166,9 +196,10 @@ export default function Resources() {
     fetchData();
   }, []);
 
-  const renderCategory = ({ item }: { item: Category }) => {
+  const renderCategory = ({ item, index }: { item: Category; index: number }) => {
     const totalQuestions = item.subcategories.reduce((sum, sub) => sum + sub.questions.length, 0);
-    const categoryIcon = getCategoryIcon(item.title);
+    const categoryIcon = getCategoryIcon(item.title, index);
+    const categoryColor = getCategoryColor(index);
     return (
       <TouchableOpacity
         style={styles.categoryCard}
@@ -179,16 +210,27 @@ export default function Resources() {
         activeOpacity={0.6}
       >
         <View style={styles.categoryHeader}>
-          <View style={styles.categoryIconContainer}>
+          <View style={[styles.categoryIconContainer, { backgroundColor: categoryColor }]}>
             <IconSymbol name={categoryIcon as any} size={20} color="#fff" />
           </View>
           <View style={styles.categoryInfo}>
             <Text style={styles.categoryTitle}>{item.title}</Text>
-            <Text style={styles.categorySubtitle}>
-              {item.subcategories.length} {item.subcategories.length === 1 ? "topic" : "topics"} • {totalQuestions} {totalQuestions === 1 ? "question" : "questions"}
-            </Text>
+            <View style={styles.categoryMeta}>
+              <View style={styles.metaItem}>
+                <IconSymbol name="folder.fill" size={12} color="#94a3b8" />
+                <Text style={styles.categorySubtitle}>
+                  {item.subcategories.length} {item.subcategories.length === 1 ? "topic" : "topics"}
+                </Text>
+              </View>
+              <View style={styles.metaItem}>
+                <IconSymbol name="questionmark.circle.fill" size={12} color="#94a3b8" />
+                <Text style={styles.categorySubtitle}>
+                  {totalQuestions} {totalQuestions === 1 ? "question" : "questions"}
+                </Text>
+              </View>
+            </View>
           </View>
-          <IconSymbol name="chevron.right" size={16} color="#94a3b8" />
+          <IconSymbol name="chevron.right" size={18} color="#94a3b8" />
         </View>
       </TouchableOpacity>
     );
@@ -212,11 +254,28 @@ export default function Resources() {
         <View style={styles.headerSection}>
           <View style={styles.headerTitleContainer}>
             <View style={styles.headerIconContainer}>
-              <IconSymbol size={26} name="book.fill" color="#3b82f6" />
+              <IconSymbol size={26} name="folder.fill" color="#3b82f6" />
             </View>
-            <Text style={styles.headerTitle}>Resources</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>Resources</Text>
+              <Text style={styles.headerSubtitle}>
+                {categories.length} {categories.length === 1 ? "category" : "categories"} available
+              </Text>
+            </View>
           </View>
         </View>
+
+        {/* Info Section */}
+        {categories.length > 0 && (
+          <View style={styles.infoSection}>
+            <View style={styles.infoCard}>
+              <IconSymbol name="info.circle.fill" size={18} color="#64748b" />
+              <Text style={styles.infoText}>
+                Browse resources by category. Tap any category to explore topics and questions.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Categories */}
         {categories.length === 0 ? (
@@ -229,8 +288,8 @@ export default function Resources() {
           </View>
         ) : (
           <View style={styles.categoriesContainer}>
-            {categories.map((category) => (
-              <View key={category.id}>{renderCategory({ item: category })}</View>
+            {categories.map((category, index) => (
+              <View key={category.id}>{renderCategory({ item: category, index })}</View>
             ))}
           </View>
         )}
@@ -288,6 +347,27 @@ const styles = StyleSheet.create({
     color: "#64748b",
     marginTop: 2,
   },
+  infoSection: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: "#f8fafc",
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#64748b",
+    lineHeight: 18,
+  },
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -316,33 +396,27 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     paddingHorizontal: 20,
-    gap: 10,
     paddingBottom: 24,
-    paddingTop: 8,
+    paddingTop: 16,
   },
   categoryCard: {
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 2,
     borderWidth: 1,
-    borderColor: "#f1f5f9",
+    borderColor: "#e5e7eb",
+    marginBottom: 2,
   },
   categoryHeader: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    gap: 12,
+    padding: 16,
+    gap: 14,
   },
   categoryIconContainer: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: 12,
-    backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -350,15 +424,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryTitle: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "600",
     color: "#0f172a",
-    marginBottom: 3,
-    letterSpacing: -0.3,
+    marginBottom: 5,
+    letterSpacing: -0.2,
   },
   categorySubtitle: {
     fontSize: 12,
     color: "#64748b",
     fontWeight: "500",
+  },
+  categoryMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
 });

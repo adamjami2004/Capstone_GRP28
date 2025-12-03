@@ -325,7 +325,7 @@ export default function TimeOffScreen() {
         <View style={styles.headerSection}>
           <View style={styles.headerTitleContainer}>
             <View style={styles.headerIconContainer}>
-              <IconSymbol size={32} name="calendar.badge.clock" color="#fff" />
+              <IconSymbol size={26} name="calendar.badge.clock" color="#3b82f6" />
             </View>
             <View>
               <Text style={styles.headerTitle}>
@@ -343,7 +343,7 @@ export default function TimeOffScreen() {
               style={styles.createButton}
               onPress={() => setCreateModalVisible(true)}
             >
-              <IconSymbol size={20} name="plus.circle.fill" color="#fff" />
+              <IconSymbol size={18} name="plus" color="#fff" />
               <Text style={styles.createButtonText}>New Request</Text>
             </TouchableOpacity>
           )}
@@ -704,43 +704,33 @@ const styles = StyleSheet.create({
   
   headerSection: { 
     paddingHorizontal: 20, 
-    paddingTop: 32, 
-    paddingBottom: 24,
+    paddingTop: 20, 
+    paddingBottom: 20,
     backgroundColor: "#fff",
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
   },
-  headerTitleContainer: { flexDirection: "row", alignItems: "flex-start", gap: 16, marginBottom: 20 },
+  headerTitleContainer: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 8,
+  },
   headerIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: "#3b82f6",
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#eff6ff",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
   },
   headerTitle: { 
     fontSize: 20, 
     fontWeight: "600", 
     color: "#1e293b",
-    letterSpacing: -0.2,
     marginBottom: 0,
   },
   headerSubtitle: { 
-    fontSize: 14, 
-    color: "#6b7280",
-    lineHeight: 20,
-    maxWidth: 240,
+    fontSize: 13, 
+    color: "#64748b",
+    marginTop: 2,
   },
   
   createButton: {
@@ -748,20 +738,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#3b82f6",
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    gap: 8,
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    gap: 6,
+    marginTop: 12,
   },
   createButtonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
     letterSpacing: 0.3,
   },
   

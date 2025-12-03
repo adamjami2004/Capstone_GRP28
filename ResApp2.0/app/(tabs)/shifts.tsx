@@ -381,7 +381,7 @@ export default function ShiftsScreen() {
     switch (status) {
       case "open": return "#10b981";
       case "pending_approval": return "#3b82f6";
-      case "approved": return "#6b7280";
+      case "approved": return "#10b981";
       case "rejected": return "#ef4444";
       case "cancelled": return "#94a3b8";
       default: return "#6b7280";
@@ -738,7 +738,7 @@ export default function ShiftsScreen() {
                         <Text style={styles.approvalTime}>{request.shiftTime}</Text>
                       </View>
                       <View style={styles.pendingBadge}>
-                        <IconSymbol size={14} name="clock" color="#f59e0b" />
+                        <IconSymbol size={14} name="clock" color="#3b82f6" />
                         <Text style={styles.pendingText}>Pending</Text>
                       </View>
                     </View>
@@ -1215,7 +1215,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
     borderRadius: 12,
     padding: 4,
-    gap: 4,
+    gap: 8,
   },
   mainTab: {
     flex: 1,
@@ -1399,8 +1399,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-    borderLeftWidth: 4,
-    borderLeftColor: "#f59e0b",
   },
   approvalHeader: {
     flexDirection: "row",
@@ -1421,19 +1419,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   approvalUserFrom: { fontSize: 14, color: "#000", fontWeight: "500", flex: 1 },
-  approvalUserTo: { fontSize: 14, color: "#10b981", fontWeight: "600", flex: 1, textAlign: "right" },
+  approvalUserTo: { fontSize: 14, color: "#3b82f6", fontWeight: "600", flex: 1, textAlign: "right" },
   approvalUserTransfer: { fontSize: 14, color: "#666", marginTop: 4 },
   approvalReason: { fontSize: 13, color: "#666", fontStyle: "italic", marginBottom: 10 },
   pendingBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#fef3c7",
+    backgroundColor: "#dbeafe",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  pendingText: { fontSize: 11, fontWeight: "600", color: "#f59e0b" },
+  pendingText: { fontSize: 11, fontWeight: "600", color: "#3b82f6" },
   approvalActions: { flexDirection: "row", gap: 8, marginTop: 8 },
   approvalActionButton: {
     flex: 1,
@@ -1444,8 +1442,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
   },
-  approveButton: { backgroundColor: "#10b981" },
-  rejectButton: { backgroundColor: "#ef4444" },
+  approveButton: { backgroundColor: "#3b82f6" },
+  rejectButton: { backgroundColor: "#475569" },
   approvalActionText: { color: "#fff", fontSize: 14, fontWeight: "600" },
   
   // Empty states
@@ -1549,7 +1547,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#3b82f6",
   },
   modalButtonDanger: {
-    backgroundColor: "#ef4444",
+    backgroundColor: "#475569",
   },
   modalButtonCancelText: { fontSize: 15, fontWeight: "600", color: "#666" },
   modalButtonSubmitText: { fontSize: 15, fontWeight: "700", color: "#fff" },

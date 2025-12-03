@@ -265,17 +265,19 @@ export default function TabTwoScreen() {
           style={[styles.dayCell, isToday && styles.todayCell]}
           onPress={() => handleDayPress(dateKey)}
         >
-          <Text style={[styles.dayText, isToday && styles.todayText]}>{day}</Text>
-          {hasEvents && (
-            <View style={styles.eventDots}>
-              {dayEvents.slice(0, 3).map((event) => (
-                <View
-                  key={event.id}
-                  style={[styles.eventDot, { backgroundColor: getEventColor(event.type) }]}
-                />
-              ))}
-            </View>
-          )}
+          <View style={styles.dayCellContent}>
+            <Text style={[styles.dayText, isToday && styles.todayText]}>{day}</Text>
+            {hasEvents && (
+              <View style={styles.eventDots}>
+                {dayEvents.slice(0, 3).map((event) => (
+                  <View
+                    key={event.id}
+                    style={[styles.eventDot, { backgroundColor: getEventColor(event.type) }]}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
         </TouchableOpacity>,
       )
     }
@@ -284,6 +286,7 @@ export default function TabTwoScreen() {
   }
 
   const selectedEvents = selectedDate && events[selectedDate] ? events[selectedDate] : []
+  const totalEventsCount = Object.values(events).reduce((sum, dayEvents) => sum + dayEvents.length, 0)
 
   const renderEventForm = (isEdit: boolean) => (
     <>
@@ -379,7 +382,22 @@ export default function TabTwoScreen() {
             <View style={styles.headerIconContainer}>
               <IconSymbol size={26} name="calendar" color="#3b82f6" />
             </View>
-            <Text style={styles.headerTitle}>Calendar</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>Operational Calendar</Text>
+              <Text style={styles.headerSubtitle}>
+                {totalEventsCount} {totalEventsCount === 1 ? "event" : "events"} scheduled
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Tutorial/Info Section */}
+        <View style={styles.tutorialSection}>
+          <View style={styles.tutorialCard}>
+            <IconSymbol name="info.circle.fill" size={18} color="#64748b" />
+            <Text style={styles.tutorialText}>
+              Tap any date to view or add events. Use the + button to create new events.
+            </Text>
           </View>
         </View>
 
@@ -482,7 +500,7 @@ export default function TabTwoScreen() {
 
             {isAdmin && (
               <TouchableOpacity style={styles.addButton} onPress={handleOpenCreateModal}>
-                <IconSymbol name="plus" size={18} color="#fff" />
+                <IconSymbol name="plus" size={16} color="#fff" />
                 <Text style={styles.addButtonText}>Add Event</Text>
               </TouchableOpacity>
             )}
@@ -566,6 +584,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  headerTextContainer: {
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: "600",
@@ -640,10 +661,19 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#000",
   },
+  dayCellContent: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingTop: 6,
+  },
   dayText: {
     fontSize: 18,
     fontWeight: "500",
     color: "#374151",
+    textAlign: "center",
+    lineHeight: 22,
   },
   todayText: {
     fontWeight: "700",
@@ -652,89 +682,34 @@ const styles = StyleSheet.create({
   eventDots: {
     flexDirection: "row",
     gap: 3,
-    marginTop: 4,
+    marginTop: 2,
+    justifyContent: "center",
   },
   eventDot: {
     width: 5,
     height: 5,
     borderRadius: 2.5,
   },
-  upcomingSection: {
+  tutorialSection: {
     paddingHorizontal: 20,
-    marginTop: 20,
-    gap: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
-  upcomingCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
+  tutorialCard: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-    borderLeftWidth: 4,
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: "#f8fafc",
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
-  upcomingIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  upcomingContent: {
+  tutorialText: {
     flex: 1,
-  },
-  upcomingLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6b7280",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  upcomingTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  upcomingMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  upcomingDate: {
     fontSize: 13,
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-  upcomingTime: {
-    fontSize: 13,
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-  noUpcomingCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  noUpcomingText: {
-    fontSize: 14,
-    color: "#9ca3af",
-    marginTop: 12,
-    fontWeight: "500",
+    color: "#64748b",
+    lineHeight: 18,
   },
   modalOverlay: {
     flex: 1,
@@ -867,17 +842,19 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: "#000",
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 6,
     marginTop: 16,
+    alignSelf: "center",
   },
   addButtonText: {
     color: "#fff",
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "600",
   },
   createModalContent: {

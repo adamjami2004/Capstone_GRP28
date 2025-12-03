@@ -1135,6 +1135,21 @@ export default function FeedScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Header */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.headerIconContainer}>
+              <IconSymbol size={26} name="newspaper.fill" color="#3b82f6" />
+            </View>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>Feed</Text>
+              <Text style={styles.headerSubtitle}>
+                {posts.length} {posts.length === 1 ? "event" : "events"} shared
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Posts Feed */}
         {posts.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -1201,37 +1216,36 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 16,
+    paddingTop: 20,
+    paddingBottom: 12,
     backgroundColor: "#fff",
   },
   headerTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 8,
   },
   headerIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#3b82f6",
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#eff6ff",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#000",
-    marginBottom: 2,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 0,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 13,
+    color: "#64748b",
+    marginTop: 2,
   },
   emptyContainer: {
     alignItems: "center",

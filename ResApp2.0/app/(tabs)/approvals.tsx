@@ -192,15 +192,15 @@ export default function ApprovalsScreen() {
     <ThemedView style={styles.container}>
       {/* Header */}
       <View style={styles.headerSection}>
-        <View style={styles.headerTitleContainer}>
-          <View style={styles.headerIconContainer}>
-            <IconSymbol size={32} name="checkmark.seal.fill" color="#fff" />
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.headerIconContainer}>
+              <IconSymbol size={26} name="checkmark.seal.fill" color="#3b82f6" />
+            </View>
+            <View>
+              <Text style={styles.headerTitle}>Approvals</Text>
+              <Text style={styles.headerSubtitle}>Review and approve cover requests</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.headerTitle}>Approvals</Text>
-            <Text style={styles.headerSubtitle}>Review and approve cover requests</Text>
-          </View>
-        </View>
 
         {pendingApprovals.length > 0 && (
           <View style={styles.countBadge}>
@@ -230,7 +230,7 @@ export default function ApprovalsScreen() {
                       <Text style={styles.requestTime}>{request.shiftTime}</Text>
                     </View>
                     <View style={styles.pendingBadge}>
-                      <IconSymbol size={16} name="clock" color="#f59e0b" />
+                      <IconSymbol size={16} name="clock" color="#3b82f6" />
                       <Text style={styles.pendingBadgeText}>Pending</Text>
                     </View>
                   </View>
@@ -245,7 +245,7 @@ export default function ApprovalsScreen() {
                     </View>
                     <IconSymbol size={16} name="arrow.right" color="#3b82f6" />
                     <View style={styles.userRow}>
-                      <IconSymbol size={16} name="person.fill" color="#10b981" />
+                      <IconSymbol size={16} name="person.fill" color="#3b82f6" />
                       <Text style={styles.userLabel}>New:</Text>
                       <Text style={[styles.userName, styles.newUser]}>
                         {request.takenBy}
@@ -348,9 +348,9 @@ export default function ApprovalsScreen() {
                       <Text style={styles.detailValue}>{selectedRequest.requestedBy}</Text>
                     </View>
                     <View style={styles.detailRow}>
-                      <IconSymbol size={20} name="person.fill" color="#10b981" />
+                      <IconSymbol size={20} name="person.fill" color="#3b82f6" />
                       <Text style={styles.detailLabel}>Taken by:</Text>
-                      <Text style={[styles.detailValue, { color: "#10b981" }]}>
+                      <Text style={[styles.detailValue, { color: "#3b82f6" }]}>
                         {selectedRequest.takenBy}
                       </Text>
                     </View>
@@ -482,7 +482,12 @@ export default function ApprovalsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f9fa", paddingBottom: 100 },
   content: { flex: 1 },
-  headerSection: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },
+  headerSection: { 
+    paddingHorizontal: 20, 
+    paddingTop: 20, 
+    paddingBottom: 20,
+    backgroundColor: "#fff",
+  },
   headerTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -490,22 +495,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#10b981",
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#eff6ff",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#10b981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   headerTitle: { fontSize: 20, fontWeight: "600", color: "#1e293b", marginBottom: 0 },
-  headerSubtitle: { fontSize: 14, color: "#666" },
+  headerSubtitle: { fontSize: 13, color: "#64748b", marginTop: 2 },
   countBadge: {
-    backgroundColor: "#f59e0b",
+    backgroundColor: "#3b82f6",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     borderLeftWidth: 4,
-    borderLeftColor: "#f59e0b",
+    borderLeftColor: "#3b82f6",
   },
   requestHeader: {
     flexDirection: "row",
@@ -538,12 +538,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#fef3c7",
+    backgroundColor: "#dbeafe",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  pendingBadgeText: { fontSize: 12, fontWeight: "600", color: "#f59e0b" },
+  pendingBadgeText: { fontSize: 12, fontWeight: "600", color: "#3b82f6" },
   requestLocation: { fontSize: 14, color: "#666", marginBottom: 12 },
   requestUsers: {
     flexDirection: "row",
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   userRow: { flexDirection: "row", alignItems: "center", gap: 6, flex: 1 },
   userLabel: { fontSize: 12, color: "#666", fontWeight: "500" },
   userName: { fontSize: 14, color: "#000", fontWeight: "600", flex: 1 },
-  newUser: { color: "#10b981" },
+  newUser: { color: "#3b82f6" },
   requestReason: { fontSize: 14, color: "#666", fontStyle: "italic", marginBottom: 12 },
   requestActions: { flexDirection: "row", gap: 8, marginTop: 8 },
   actionButton: {
@@ -569,8 +569,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
   },
-  approveButton: { backgroundColor: "#10b981" },
-  rejectButton: { backgroundColor: "#ef4444" },
+  approveButton: { backgroundColor: "#3b82f6" },
+  rejectButton: { backgroundColor: "#475569" },
   actionButtonText: { color: "#fff", fontSize: 14, fontWeight: "600" },
   emptyState: {
     paddingHorizontal: 20,
@@ -679,8 +679,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  approveButtonLarge: { backgroundColor: "#10b981" },
-  rejectButtonLarge: { backgroundColor: "#ef4444" },
+  approveButtonLarge: { backgroundColor: "#3b82f6" },
+  rejectButtonLarge: { backgroundColor: "#475569" },
   cancelButton: { backgroundColor: "#f3f4f6" },
   modalButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   cancelButtonText: { color: "#666", fontSize: 16, fontWeight: "600" },

@@ -2,8 +2,6 @@
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { auth, db } from "@/firebase";
-import { fetchPosts, formatPostDate } from "@/helpers/feedHelper";
-import { Post } from "@/types/feed";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { collection, getDocs, query, where } from "firebase/firestore";
@@ -12,7 +10,6 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function HomeScreen() {
   const [firstName, setFirstName] = useState<string>("");
-  const [latestEvent, setLatestEvent] = useState<Post | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -38,19 +35,7 @@ export default function HomeScreen() {
       }
     };
 
-    const fetchLatestEvent = async () => {
-      try {
-        const posts = await fetchPosts();
-        if (posts.length > 0) {
-          setLatestEvent(posts[0]);
-        }
-      } catch (error) {
-        console.error("Error fetching latest event:", error);
-      }
-    };
-
     fetchUser();
-    fetchLatestEvent();
   }, []);
   const quickAccessItems = [
     { id: 2, title: "To-Do List", icon: "checklist", color: "#3b82f6", route: "/(tabs)/todo-list" },
@@ -104,57 +89,41 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Latest Event Section */}
-        {latestEvent && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Latest Event</Text>
-              <TouchableOpacity onPress={() => router.push("/(tabs)/feed")}>
-                <Text style={styles.seeAllText}>View All</Text>
-              </TouchableOpacity>
+        {/* Feedback Info Section */}
+        <View style={styles.infoSection}>
+          <TouchableOpacity
+            style={styles.infoCard}
+            onPress={() => router.push("/(tabs)/feedback")}
+            activeOpacity={0.7}
+          >
+            <IconSymbol name="info.circle.fill" size={18} color="#64748b" />
+            <Text style={styles.infoText}>
+              Don't hesitate to give feedback using the feedback feature
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Next Shift Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Next Shift</Text>
+          <TouchableOpacity
+            style={styles.shiftCard}
+            onPress={() => router.push("/(tabs)/shifts")}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.shiftColorBar, { backgroundColor: "#10b981" }]} />
+            <View style={styles.shiftContent}>
+              <View style={styles.shiftHeader}>
+                <Text style={styles.shiftDate}>Thu, Dec 19, 2025</Text>
+                <View style={[styles.statusBadge, { backgroundColor: "#10b98120" }]}>
+                  <Text style={[styles.statusText, { color: "#10b981" }]}>Scheduled</Text>
+                </View>
+              </View>
+              <Text style={styles.shiftTime}>20:00 - 07:00</Text>
+              <Text style={styles.shiftLocation}>📍 Rideau</Text>
             </View>
-            <TouchableOpacity
-              style={styles.eventCard}
-              onPress={() => router.push("/(tabs)/feed")}
-              activeOpacity={0.7}
-            >
-              <View style={styles.eventAccent} />
-              <View style={styles.eventHeader}>
-                <View style={styles.eventIconContainer}>
-                  <IconSymbol name="calendar" size={20} color="#2563eb" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.eventTitle} numberOfLines={2}>
-                    {latestEvent.title}
-                  </Text>
-                  <View style={styles.eventMeta}>
-                    <IconSymbol name="person.fill" size={12} color="#6b7280" />
-                    <Text style={styles.eventAuthor}>
-                      {latestEvent.userName}
-                    </Text>
-                  </View>
-                </View>
-                {(latestEvent.likeCount || 0) > 0 && (
-                  <View style={styles.likeBadge}>
-                    <IconSymbol name="heart.fill" size={14} color="#ef4444" />
-                    <Text style={styles.likeBadgeText}>{latestEvent.likeCount}</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.eventDescription} numberOfLines={2}>
-                {latestEvent.description}
-              </Text>
-              <View style={styles.eventFooter}>
-                <View style={styles.eventDateBadge}>
-                  <IconSymbol name="clock.fill" size={12} color="#2563eb" />
-                  <Text style={styles.eventDateText}>
-                    {formatPostDate(latestEvent.date)}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
+          </TouchableOpacity>
+        </View>
       </View>
     </ThemedView>
   );
@@ -232,109 +201,50 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     lineHeight: 14,
   },
-  sectionHeader: {
+  shiftCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    flexDirection: "row",
+    overflow: "hidden",
+    marginHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  shiftColorBar: { width: 4 },
+  shiftContent: { flex: 1, padding: 14 },
+  shiftHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 8,
+  },
+  shiftDate: { fontSize: 16, fontWeight: "600", color: "#000" },
+  shiftTime: { fontSize: 14, color: "#666", marginBottom: 4 },
+  shiftLocation: { fontSize: 14, color: "#999" },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  statusText: { fontSize: 11, fontWeight: "600" },
+  infoSection: {
     paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
-  seeAllText: {
-    fontSize: 13,
-    color: "#2563eb",
-    fontWeight: "600",
-  },
-  eventCard: {
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    marginHorizontal: 20,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    position: "relative",
-  },
-  eventAccent: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: "#2563eb",
-  },
-  eventHeader: {
+  infoCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
-    padding: 16,
-    paddingBottom: 12,
-  },
-  eventIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "#dbeafe",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  eventTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111827",
-    lineHeight: 22,
-    marginBottom: 4,
-  },
-  eventMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  eventAuthor: {
-    fontSize: 12,
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-  likeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#fee2e2",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  likeBadgeText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#ef4444",
-  },
-  eventDescription: {
-    fontSize: 14,
-    color: "#4b5563",
-    lineHeight: 20,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  eventFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  eventDateBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#f1f5f9",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    gap: 10,
+    backgroundColor: "#f8fafc",
+    padding: 12,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
-  eventDateText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#2563eb",
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#64748b",
+    lineHeight: 18,
   },
 });
